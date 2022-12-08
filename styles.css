@@ -1,0 +1,99 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  background-color: #242424;
+}
+
+button {
+  cursor: pointer;
+  padding: 0.5em;
+  color: #212121;
+  background-color: lightgrey;
+  border: 1px solid white;
+  border-radius: 10px;
+  transition: all ease-in-out 150ms;
+}
+
+button:active {
+  transform: translateY(1px);
+  box-shadow: inset 3px 3px 5px black;
+}
+
+input {
+  padding: 0.5em;
+  background-color: lightgrey;
+}
+
+.app {
+  width: 100vw;
+  height: 100vh;
+  padding: 5em 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+  gap: 1em;
+}
+
+.app header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1em;
+}
+
+.app-content {
+  background-color: rgb(133, 133, 133);
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  border: 1px solid white;
+  border-radius: 10px;
+  padding: 1em;
+  width: 80%;
+}
+
+.tier-container {
+  display: flex;
+  justify-content: space-between;
+  background-color: #212121;
+  border: 1px solid black;
+  border-radius: inherit;
+  height: 100px;
+}
+
+.tier-container header,
+.tier-container footer {
+  display: flex;
+  flex-direction: column;
+  margin: auto 0;
+  background-color: #4b4b4b;
+  color: white;
+  width: fit-content;
+  height: 100%;
+  padding: 0.5em;
+}
+
+.tier-container header {
+  border-radius: 10px 0 0 10px;
+}
+
+.tier-container footer {
+  border-radius: 0 10px 10px 0;
+  justify-content: space-between;
+}
+
+.footer-icon:hover {
+  cursor: pointer;
+  color: white !important;
+}
+
+.tier-container .content {
+  align-self: center;
+  font-size: 2rem;
+  color: lightgrey;
+}
