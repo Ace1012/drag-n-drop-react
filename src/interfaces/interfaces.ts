@@ -8,5 +8,5 @@ export interface ITier {
 export interface ITile{
   id: string;
   assetsId:number;
-  imageUrl: string;
+  imageUrl?: string;
 }

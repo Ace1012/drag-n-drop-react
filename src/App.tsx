@@ -5,7 +5,8 @@ import Tile from "./components/tile";
 import { ITier, ITile } from "./interfaces/interfaces";
 
 function App() {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputTierRef = useRef<HTMLInputElement>(null);
+  const inputTileRef = useRef<HTMLInputElement>(null);
   const tiersRef = useRef<HTMLUListElement>(null);
   const tileCounter = useRef<number>(0);
   const tierCounter = useRef<number>(0);
@@ -16,7 +17,7 @@ function App() {
   const [iTiers, setITiers] = useState<ITier[]>([
     { title: "default", children: [] },
   ]);
-  const [iTiles, setITiles] = useState<ITile[]>([...initITiles()]);
+  const [iTiles, setITiles] = useState<ITile[]>([]);
 
   function initITiles() {
     const initTiles: ITile[] = [];
@@ -32,6 +33,7 @@ function App() {
   }
 
   function removeTier(title: string) {
+    console.log("########Remove tier########");
     const tier = iTiers.find((tier) => tier.title === title)!;
     setITiles((prevTiles) => [...prevTiles, ...tier.children]);
     // addedTiles.current = addedTiles.current.filter((tile) =>
@@ -42,8 +44,8 @@ function App() {
   }
 
   function removeTile(tileId: string, parentTier?: ITier) {
+    console.log("########Remove tile########");
     if (parentTier) {
-      console.log("has parent");
       const tempTile = parentTier.children.find((tile) => tile.id === tileId)!;
       setITiers((prevTiers) =>
         prevTiers.map((tier) => {
@@ -63,8 +65,9 @@ function App() {
     }
   }
 
-  function handleInput() {
-    const tierTitle = inputRef.current?.value;
+  function handleTierInput() {
+    console.log("########Handle tier input########");
+    const tierTitle = inputTierRef.current?.value;
     if (tierTitle === "") {
       alert("Cannot add empty tier");
     } else if (iTiers.some((tier) => tier.title === tierTitle)) {
@@ -74,13 +77,30 @@ function App() {
         ...prev,
         { title: tierTitle, children: [] } as ITier,
       ]);
-      inputRef.current!.value = "";
+      inputTierRef.current!.value = "";
     }
   }
 
+  function handleTileInput() {
+    console.log("########Handle tile input########");
+    const tileImageUrl = inputTileRef.current?.value!;
+    console.log("Image url", tileImageUrl);
+    const newTile = {
+      id: `tile${tileCounter.current}`,
+      assetsId: tileCounter.current++,
+      // imageUrl: `https://source.unsplash.com/random/${tileCounter.current}`,
+      imageUrl: `url(${tileImageUrl})`,
+    } as ITile;
+    console.log(newTile);
+    setITiles((prevTiles) => [...prevTiles, newTile]);
+    inputTileRef.current!.value = "";
+  }
+
   function onInputEnter(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      handleInput();
+    if (e.key === "Enter" && document.activeElement === inputTierRef.current) {
+      handleTierInput();
+    }else if (e.key === "Enter" && document.activeElement === inputTileRef.current) {
+      handleTileInput();
     }
   }
 
@@ -89,6 +109,8 @@ function App() {
     tileId: string,
     options?: { tier?: ITier }
   ) {
+    console.log("########Tile drop########");
+    updateTierDragOver(e);
     const iTile: ITile = options?.tier
       ? options.tier.children.find((tile) => tile.id === tileId)!
       : iTiles.find((tile) => tile.id === tileId)!;
@@ -129,17 +151,20 @@ function App() {
       return;
     } else {
       console.log("Drop condition 4");
+      console.log("Removing from iTiles", iTile);
+      console.log("iTiles length", iTiles.length);
+      setITiles((prevTiles) =>
+        prevTiles.length === 1
+          ? []
+          : prevTiles.filter((tile) => tile.id !== iTile.id)
+      );
       setITiers((prevITiers) =>
         prevITiers.map((tier) => {
           if (tier.title === currentTierTitle) {
-            tier.children =
-              tier.children.length > 0 ? [...tier.children, iTile] : [iTile];
+            tier.children = [...tier.children, iTile];
           }
           return tier;
         })
-      );
-      setITiles((prevTiles) =>
-        prevTiles.filter((tile) => tile.id !== iTile.id)
       );
     }
     closestDragTile.current && options?.tier
@@ -154,6 +179,7 @@ function App() {
     dragTile: ITile,
     destinationTierTitle?: string
   ) {
+    console.log("########Reorganize Tiles########");
     if (closestDragTile.current) {
       const tileRect = closestDragTile.current.rect;
       const tileMiddle = tileRect.left + tileRect.width / 2;
@@ -162,6 +188,7 @@ function App() {
       let index: number;
 
       if (destinationTierTitle) {
+        console.log("Has parent");
         setITiers((prevTiers) =>
           prevTiers.map((tier) => {
             if (tier.title === destinationTierTitle) {
@@ -181,10 +208,16 @@ function App() {
           })
         );
       } else {
+        console.log("No parent");
         let tempTiles: ITile[] = [];
         if (delta <= 0) {
           //Place before
           setITiles((prevTiles) => {
+            console.log("Tiles while reorg before", prevTiles);
+            if (prevTiles.length <= 1) {
+              console.log("Place before less than 1");
+              return prevTiles;
+            }
             tempTiles = [
               ...prevTiles.filter((tile) => tile.id !== dragTile.id),
             ];
@@ -195,6 +228,11 @@ function App() {
         } else {
           //Place after
           setITiles((prevTiles) => {
+            console.log("Tiles while reorg after", prevTiles);
+            if (prevTiles.length <= 1) {
+              console.log("Place after less than 1");
+              return prevTiles;
+            }
             tempTiles = [
               ...prevTiles.filter((tile) => tile.id !== dragTile.id),
             ];
@@ -208,6 +246,7 @@ function App() {
   }
 
   function reOrganizeTiers(e: React.DragEvent, dragTier: ITier) {
+    console.log("########Reorganize Tiers########");
     if (!closestDragTier.current) return;
     const tierRect = closestDragTier.current.rect;
     const tierMiddle = tierRect.top + tierRect.height / 2;
@@ -236,27 +275,48 @@ function App() {
     closestDragTier.current = null;
   }
 
+  function updateTierDragOver(e: React.DragEvent) {
+    console.log("########Update Drag Over########");
+    const tierRect = document
+      .querySelector(".tier-section")!
+      .getBoundingClientRect();
+    const pointerPositon = { y: e.clientY, x: e.clientX };
+    const isOutsideTiers =
+      tierRect.top > pointerPositon.y ||
+      tierRect.bottom < pointerPositon.y ||
+      tierRect.left > pointerPositon.x ||
+      tierRect.right < pointerPositon.x;
+    if (isOutsideTiers) {
+      console.log("###########\nOutside tiers\n###########");
+      currentTitle.current = "";
+    }
+  }
+
   return (
     <div className="app">
-      <header>
-        <label>
-          <span
-            style={{
-              color: "lightgrey",
-              fontSize: "1.5rem",
-            }}
-          >
-            Tier title:{" "}
-          </span>
-          <input
-            type="text"
-            ref={inputRef}
-            onKeyDown={(e) => onInputEnter(e)}
-          />
-        </label>
-        <button onClick={() => handleInput()}>Click to add new tier</button>
-      </header>
-      <ul className="tiers" ref={tiersRef}>
+      <ul className="tier-section" ref={tiersRef}>
+        <header>
+          <div className="add-tier">
+            <label>
+              <span
+                style={{
+                  color: "lightgrey",
+                  fontSize: "1.5rem",
+                }}
+              >
+                Tier title:{" "}
+              </span>
+              <input
+                type="text"
+                ref={inputTierRef}
+                onKeyDown={(e) => onInputEnter(e)}
+              />
+            </label>
+            <button onClick={() => handleTierInput()}>
+              Click to add new tier
+            </button>
+          </div>
+        </header>
         {iTiers.length > 0 ? (
           iTiers.map((iTier) => (
             <Container
@@ -275,15 +335,39 @@ function App() {
           <div className="no-tiers">No tiers</div>
         )}
       </ul>
-      <div className="tiles">
-        {iTiles.map((iTile) => (
-          <Tile
-            key={`${iTile.id}`}
-            closestDragTile={closestDragTile}
-            tile={iTile}
-            tileDrop={tileDrop}
-          />
-        ))}
+      <div className="tile-section">
+        <header>
+          <div className="add-tile">
+            <label>
+              <span
+                style={{
+                  color: "lightgrey",
+                  fontSize: "1.5rem",
+                }}
+              >
+                Tile image url:{" "}
+              </span>
+              <input
+                type="text"
+                ref={inputTileRef}
+                onKeyDown={(e) => onInputEnter(e)}
+              />
+            </label>
+            <button onClick={() => handleTileInput()}>
+              Click to add new tile
+            </button>
+          </div>
+        </header>
+        <div className="tiles">
+          {iTiles.map((iTile) => (
+            <Tile
+              key={`${iTile.id}`}
+              closestDragTile={closestDragTile}
+              tile={iTile}
+              tileDrop={tileDrop}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

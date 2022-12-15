@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { ITier, ITile } from "../interfaces/interfaces";
 import { FaTrash } from "react-icons/fa";
 import { AiFillSetting } from "react-icons/ai";
@@ -37,8 +37,11 @@ const Container = ({
 }: ContainerProps) => {
   const tierContainerRef = useRef<HTMLLIElement>(null);
   const contentAreaRef = useRef<HTMLUListElement>(null);
+  const isOver = useRef(false); //Limit the number of invocations of dragOver
+  const customMenuRef = useRef<HTMLDivElement>(null);
+
   const [isDraggingTier, setIsDraggingTier] = useState(false);
-  const isOver = useRef(false);
+  const [isCustomizationMenuOpen, setIsCustomizationMenuOpen] = useState(false);
 
   function dragOver(e: React.DragEvent) {
     let dragOverTierDetails = {
@@ -50,7 +53,7 @@ const Container = ({
       currentTitle.current = tier.title;
       if (!closestDragTier.current) {
         tierContainerRef.current!.style.border = "1px solid yellow";
-      } else if (closestDragTile.current) {
+      } else if (currentTitle.current) {
         contentAreaRef.current!.style.boxShadow = "inset 0 0 15px 5px cyan";
       }
       closestDragTier.current = dragOverTierDetails;
@@ -58,19 +61,19 @@ const Container = ({
   }
 
   function dragLeave(e: React.DragEvent) {
-    const tierRect = e.currentTarget.getBoundingClientRect();
-    const pointerPositon = { y: e.clientY, x: e.clientX };
-    const isOutsideTiers =
-      tierRect.top > pointerPositon.y ||
-      tierRect.bottom < pointerPositon.y ||
-      tierRect.left > pointerPositon.x ||
-      tierRect.right < pointerPositon.x;
+    // const tierRect = e.currentTarget.getBoundingClientRect();
+    // const pointerPositon = { y: e.clientY, x: e.clientX };
+    // const isOutsideTiers =
+    //   tierRect.top > pointerPositon.y ||
+    //   tierRect.bottom < pointerPositon.y ||
+    //   tierRect.left > pointerPositon.x ||
+    //   tierRect.right < pointerPositon.x;
     tierContainerRef.current!.style.border = "";
     contentAreaRef.current!.style.boxShadow = "";
     if (isOver.current) {
       isOver.current = false;
-      // if (isOutsideTiers) closestDragTier.current = null;
     }
+    // if (isOutsideTiers) currentTitle.current = "";
   }
 
   function dragStart(e: React.DragEvent) {
@@ -78,21 +81,27 @@ const Container = ({
   }
 
   function dragEnd(e: React.DragEvent) {
+    currentTitle.current = "";
     tierContainerRef.current!.style.opacity = "";
     reOrganizeTiers(e, tier);
   }
 
   function handleCog(e: React.MouseEvent<SVGElement, MouseEvent>) {
     const el = e.currentTarget;
-    el.classList.add("cog-clicked");
-    const time = () => {
-      const t = setTimeout(() => {
-        console.log("Removing");
-        el.classList.remove("cog-clicked");
-        clearTimeout(t);
-      }, 500);
-    };
-    time();
+    if (isCustomizationMenuOpen) {
+      el.classList.remove("cog-clicked");
+      setIsCustomizationMenuOpen(false);
+    } else {
+      el.classList.add("cog-clicked");
+      setIsCustomizationMenuOpen(true);
+      const time = () => {
+        const t = setTimeout(() => {
+          customMenuRef.current?.classList.add("custom-menu-animation");
+          clearTimeout(t);
+        });
+      };
+      time();
+    }
   }
 
   function handleDraggable(e: React.MouseEvent<HTMLElement, MouseEvent>) {
@@ -129,7 +138,7 @@ const Container = ({
         className={`content ${children.length > 0 ? "has-children" : ""}`}
       >
         {children.length > 0 ? (
-          children.map((iTile, index) => (
+          children.map((iTile) => (
             <Tile
               key={`${iTile!.id}`}
               tier={tier}
@@ -144,7 +153,7 @@ const Container = ({
               width: "max-content",
             }}
           >
-            Content Area
+            Add items here
           </span>
         )}
       </ul>
@@ -155,6 +164,11 @@ const Container = ({
           size={30}
           color="rgb(130, 130, 130)"
         />
+        {isCustomizationMenuOpen && (
+          <div ref={customMenuRef} className={`customization-menu`}>
+            Customization tools to be added
+          </div>
+        )}
         <FaTrash
           className="footer-icon"
           onClick={() => removeTier(tier.title)}

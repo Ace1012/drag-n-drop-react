@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, {  useRef } from "react";
 import { assets } from "../assests/assets";
 import { ITier, ITile } from "../interfaces/interfaces";
 
@@ -12,7 +12,7 @@ interface TileProps {
   tileDrop: (
     e: React.DragEvent,
     tileId: string,
-    options?: { tier?: ITier}
+    options?: { tier?: ITier }
   ) => void;
 }
 
@@ -33,12 +33,16 @@ const Tile: React.FunctionComponent<TileProps> = ({
   }
 
   function onDragEnd(e: React.DragEvent<HTMLLIElement>) {
-    e.stopPropagation()
+    e.stopPropagation();
     isDragging = false;
     e.currentTarget.style.opacity = "";
-    tier
-      ? tileDrop(e, tile.id, { tier })
-      : tileDrop(e, tile.id);
+    if (tier) {
+      console.log("Has tier");
+      tileDrop(e, tile.id, { tier });
+    } else {
+      console.log("No tier");
+      tileDrop(e, tile.id);
+    }
   }
 
   function onDragOver(e: React.DragEvent) {
@@ -66,15 +70,14 @@ const Tile: React.FunctionComponent<TileProps> = ({
       onDragOver={(e) => onDragOver(e)}
       draggable
       style={{
-        // backgroundImage: `url(/assets/unsplash.jpg)`,
-        // background:"rgb(0, 0, 0, 1)",
-        backgroundImage: `url(${assets[tile.assetsId]})`,
-        display:"flex",
-        justifyContent:"center",
-        alignItems:"center"
+        // backgroundImage: tile.imageUrl && `url(${assets[tile.assetsId]})`,
+        backgroundImage: tile.imageUrl,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
-      {/* <img src={`${assets[tile.assetsId]}`} alt="unsplash" /> */}
+      {!tile.imageUrl && <span>{tile.id}</span>}
       {/* <span style={{
         fontSize:"3em",
         color:"white"
