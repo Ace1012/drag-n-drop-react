@@ -1,38 +1,22 @@
 import React, { useRef, useState } from "react";
-import { ITier, ITile } from "../interfaces/interfaces";
+import { ITier, ITile } from "../App";
 import { FaTrash } from "react-icons/fa";
 import { AiFillSetting } from "react-icons/ai";
 import Tile from "./tile";
 
 interface ContainerProps {
   tier: ITier;
-  currentTitle: React.MutableRefObject<string>;
-  closestDragTile: React.MutableRefObject<{
-    tile: ITile;
-    rect: DOMRect;
-  } | null>;
-  closestDragTier: React.MutableRefObject<{
-    tier: ITier;
-    rect: DOMRect;
-  } | null>;
-  removeTier: (title: string) => void;
-  reOrganizeTiers: (e: React.DragEvent, dragTier: ITier) => void;
-  tileDrop: (
-    e: React.DragEvent,
-    tileId: string,
-    options?: { tier?: ITier }
-  ) => void;
+  tiersRef: React.RefObject<HTMLUListElement>;
+  setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
+  setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
   children: ITile[];
 }
 
 const Container = ({
   tier,
-  currentTitle,
-  closestDragTile,
-  closestDragTier,
-  reOrganizeTiers,
-  removeTier,
-  tileDrop,
+  tiersRef,
+  setITiers,
+  setITiles,
   children,
 }: ContainerProps) => {
   const tierContainerRef = useRef<HTMLLIElement>(null);
@@ -43,47 +27,129 @@ const Container = ({
   const [isDraggingTier, setIsDraggingTier] = useState(false);
   const [isCustomizationMenuOpen, setIsCustomizationMenuOpen] = useState(false);
 
+  function dragStart(e: React.DragEvent) {
+    tierContainerRef.current!.style.opacity = "0.5";
+    e.dataTransfer.setData("tier", JSON.stringify(tier));
+  }
+
   function dragOver(e: React.DragEvent) {
-    let dragOverTierDetails = {
-      tier: tier,
-      rect: e.currentTarget.getBoundingClientRect(),
-    };
+    e.preventDefault();
     if (!isDraggingTier && !isOver.current) {
       isOver.current = true;
-      currentTitle.current = tier.title;
-      if (!closestDragTier.current) {
-        tierContainerRef.current!.style.border = "1px solid yellow";
-      } else if (currentTitle.current) {
-        contentAreaRef.current!.style.boxShadow = "inset 0 0 15px 5px cyan";
-      }
-      closestDragTier.current = dragOverTierDetails;
+      tierContainerRef.current!.style.border = "1px solid yellow";
     }
   }
 
   function dragLeave(e: React.DragEvent) {
-    // const tierRect = e.currentTarget.getBoundingClientRect();
-    // const pointerPositon = { y: e.clientY, x: e.clientX };
-    // const isOutsideTiers =
-    //   tierRect.top > pointerPositon.y ||
-    //   tierRect.bottom < pointerPositon.y ||
-    //   tierRect.left > pointerPositon.x ||
-    //   tierRect.right < pointerPositon.x;
     tierContainerRef.current!.style.border = "";
     contentAreaRef.current!.style.boxShadow = "";
     if (isOver.current) {
       isOver.current = false;
     }
-    // if (isOutsideTiers) currentTitle.current = "";
+  }
+  
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    if (e.dataTransfer.getData("tier")) {
+      console.log(
+        "=========>Dragged tier",
+        JSON.parse(e.dataTransfer.getData("tier"))
+      );
+      reOrganizeTiers(e);
+    } else if (e.dataTransfer.getData("tile")) {
+      console.log(
+        "=========>Dragged tile",
+        JSON.parse(e.dataTransfer.getData("tile"))
+      );
+      if (e.dataTransfer.getData("tile-tier")) {
+        const tile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
+        const tierTile = JSON.parse(
+          e.dataTransfer.getData("tile-tier")
+        ) as ITier;
+        console.log("Has tier");
+        tileDrop(e, tile, { tier: tierTile });
+      } else {
+        console.log("No tier");
+        tileDrop(e, JSON.parse(e.dataTransfer.getData("tile")));
+      }
+    }
   }
 
-  function dragStart(e: React.DragEvent) {
-    tierContainerRef.current!.style.opacity = "0.5";
+  function tileDrop(
+    e: React.DragEvent,
+    iTile: ITile,
+    options?: { tier: ITier }
+  ) {
+    console.log("########Tile drop########");
+    console.log("Event", e, iTile, "options\n", options);
+    if (options?.tier) {
+      console.log("Drop condition 1: Moving tile from one tier to another");
+      console.log(options.tier);
+      setITiers((prevTiers) =>
+        prevTiers.map((prevTier) => {
+          if (prevTier.title === options.tier.title) {
+            prevTier.children = [
+              ...prevTier.children.filter((tile) => tile.id !== iTile.id),
+            ];
+          }
+          if (prevTier.title === tier.title) {
+            prevTier.children = [...prevTier.children, iTile];
+          }
+          return prevTier;
+        })
+      );
+    }  else {
+      console.log("Drop condition 3: Adding tile to tier");
+      setITiles((prevTiles) =>
+        prevTiles.length === 1
+          ? []
+          : prevTiles.filter((tile) => tile.id !== iTile.id)
+      );
+      setITiers((prevITiers) =>
+        prevITiers.map((prevTier) => {
+          if (prevTier.title === tier.title) {
+            prevTier.children = [...prevTier.children, iTile];
+          }
+          return prevTier;
+        })
+      );
+    }
   }
 
-  function dragEnd(e: React.DragEvent) {
-    currentTitle.current = "";
-    tierContainerRef.current!.style.opacity = "";
-    reOrganizeTiers(e, tier);
+  function removeTier(title: string) {
+    console.log("########Remove tier########");
+    setITiles((prevTiles) => [...prevTiles, ...tier.children]);
+    setITiers((prev) => prev.filter((tier) => tier.title !== title));
+  }
+
+  function reOrganizeTiers(e: React.DragEvent) {
+    console.log("########Reorganize Tiers########");
+    const dragTier = JSON.parse(e.dataTransfer.getData("tier")) as ITier;
+    if (!dragTier) return;
+    const tierRect = tierContainerRef.current!.getBoundingClientRect();
+    const tierMiddle = tierRect.top + tierRect.height / 2;
+    const delta = e.clientY - tierMiddle;
+    const closestTier = tier;
+    let index: number;
+    if (delta <= 0) {
+      setITiers((prevTiers) => {
+        let tempTiers = prevTiers.filter(
+          (tier) => tier.title !== dragTier.title
+        );
+        index = tempTiers.indexOf(closestTier);
+        tempTiers.splice(index, 0, dragTier);
+        return tempTiers;
+      });
+    } else {
+      setITiers((prevTiers) => {
+        let tempTiers = prevTiers.filter(
+          (tier) => tier.title !== dragTier.title
+        );
+        index = tempTiers.indexOf(closestTier);
+        tempTiers.splice(index + 1, 0, dragTier);
+        return tempTiers;
+      });
+    }
   }
 
   function handleCog(e: React.MouseEvent<SVGElement, MouseEvent>) {
@@ -107,24 +173,20 @@ const Container = ({
   function handleDraggable(e: React.MouseEvent<HTMLElement, MouseEvent>) {
     if (e.type === "mouseenter") {
       setIsDraggingTier(true);
-      tierContainerRef.current!.style.cursor = "grab";
-      tierContainerRef.current!.style.border = "1px solid cyan";
     }
     if (e.type === "mouseleave") {
       setIsDraggingTier(false);
-      tierContainerRef.current!.style.cursor = "";
-      tierContainerRef.current!.style.border = "";
     }
   }
 
   return (
     <li
       ref={tierContainerRef}
+      draggable={isDraggingTier}
+      onDrop={onDrop}
       onDragStart={(e) => dragStart(e)}
-      onDragEnd={(e) => dragEnd(e)}
       onDragOver={(e) => dragOver(e)}
       onDragLeave={(e) => dragLeave(e)}
-      draggable={isDraggingTier}
       className="tier-container"
     >
       <header
@@ -141,10 +203,11 @@ const Container = ({
           children.map((iTile) => (
             <Tile
               key={`${iTile!.id}`}
+              setITiers={setITiers}
+              setITiles={setITiles}
+              tiersRef={tiersRef}
               tier={tier}
-              closestDragTile={closestDragTile}
               tile={iTile!}
-              tileDrop={tileDrop}
             />
           ))
         ) : (

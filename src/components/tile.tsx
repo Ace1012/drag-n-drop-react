@@ -1,62 +1,107 @@
-import React, {  useRef } from "react";
-import { assets } from "../assests/assets";
-import { ITier, ITile } from "../interfaces/interfaces";
+import React, { useRef } from "react";
+import { ITier, ITile } from "../App";
 
 interface TileProps {
   tile: ITile;
   tier?: ITier;
-  closestDragTile: React.MutableRefObject<{
-    tile: ITile;
-    rect: DOMRect;
-  } | null>;
-  tileDrop: (
-    e: React.DragEvent,
-    tileId: string,
-    options?: { tier?: ITier }
-  ) => void;
+  tiersRef: React.RefObject<HTMLUListElement>;
+  setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
+  setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
 }
 
-const Tile: React.FunctionComponent<TileProps> = ({
+const Tile = ({
   tile,
   tier,
-  closestDragTile,
-  tileDrop,
-}) => {
+  tiersRef,
+  setITiers,
+  setITiles,
+}: TileProps) => {
   const tileRef = useRef<HTMLLIElement>(null);
-  let isDragging = false;
+
+  function removeTile(tileId: string, parentTier: ITier) {
+    console.log("########Remove tile########");
+    const tempTile = parentTier.children.find((tile) => tile.id === tileId)!;
+    setITiers((prevTiers) =>
+      prevTiers.map((tier) => {
+        tier.children = tier.children.filter((tile) => tile.id !== tileId);
+        return tier;
+      })
+    );
+    setITiles((prevTiles) => [...prevTiles, tempTile]);
+  }
+
+  function reorganizeTiles(e: React.DragEvent) {
+    console.log("Editing tiles");
+    const tileRect = tileRef.current!.getBoundingClientRect();
+    const tileMiddle = tileRect.left + tileRect.width / 2;
+    const delta = e.clientX - tileMiddle;
+    console.log("Delta: ", delta);
+    const dragTile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
+
+    if (tier) {
+      setITiers((prevTiers) =>
+        prevTiers.map((prevTier) => {
+          if (prevTier.title === tier.title) {
+            prevTier.children = prevTier.children.filter(
+              (prevTile) => prevTile.id !== dragTile.id
+            );
+            if (delta <= 0) {
+              console.log("Placing before");
+              prevTier.children.splice(prevTier.children.indexOf(tile), 0, dragTile);
+            } else {
+              console.log("Placing after");
+              prevTier.children.splice(prevTier.children.indexOf(tile) + 1, 0, dragTile);
+            }
+          }
+          return prevTier;
+        })
+      );
+    } else {
+      setITiles((prevTiles) => {
+        prevTiles = prevTiles.filter((prevTile) => prevTile.id !== dragTile.id);
+        if (delta <= 0) {
+          console.log("Placing before");
+          prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
+        } else {
+          console.log("Placing after");
+          prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
+        }
+        return prevTiles;
+      });
+    }
+  }
 
   function dragStart(e: React.DragEvent<HTMLLIElement>) {
     e.stopPropagation();
-    isDragging = true;
-    console.log(tile);
+    e.dataTransfer.setData("tile", JSON.stringify(tile));
+    tier && e.dataTransfer.setData("tile-tier", JSON.stringify(tier));
     e.currentTarget.style.opacity = "0.5";
   }
 
   function onDragEnd(e: React.DragEvent<HTMLLIElement>) {
     e.stopPropagation();
-    isDragging = false;
+    const tierRect = tiersRef.current!.getBoundingClientRect();
+    const pointerPositon = { y: e.clientY, x: e.clientX };
+    const isOutsideTiers =
+      tierRect.top > pointerPositon.y ||
+      tierRect.bottom < pointerPositon.y ||
+      tierRect.left > pointerPositon.x ||
+      tierRect.right < pointerPositon.x;
+    if (isOutsideTiers && tier) removeTile(tile.id, tier);
     e.currentTarget.style.opacity = "";
-    if (tier) {
-      console.log("Has tier");
-      tileDrop(e, tile.id, { tier });
-    } else {
-      console.log("No tier");
-      tileDrop(e, tile.id);
-    }
   }
 
   function onDragOver(e: React.DragEvent) {
-    let dragOverTileDetails = {
-      rect: e.currentTarget.getBoundingClientRect(),
-      tile: tile,
-    };
-    if (
-      !isDragging &&
-      closestDragTile.current?.rect !== dragOverTileDetails.rect &&
-      closestDragTile.current?.tile !== dragOverTileDetails.tile
-    ) {
-      closestDragTile.current = dragOverTileDetails;
-      console.log(dragOverTileDetails.tile.id);
+    e.preventDefault();
+    e.stopPropagation()
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    const dragTile = JSON.parse(e.dataTransfer.getData("tile")) as ITile
+    if(dragTile.id !== tile.id){
+      reorganizeTiles(e);
     }
   }
 
@@ -68,9 +113,9 @@ const Tile: React.FunctionComponent<TileProps> = ({
       onDragStart={(e) => dragStart(e)}
       onDragEnd={(e) => onDragEnd(e)}
       onDragOver={(e) => onDragOver(e)}
+      onDrop={onDrop}
       draggable
       style={{
-        // backgroundImage: tile.imageUrl && `url(${assets[tile.assetsId]})`,
         backgroundImage: tile.imageUrl,
         display: "flex",
         justifyContent: "center",
@@ -78,10 +123,6 @@ const Tile: React.FunctionComponent<TileProps> = ({
       }}
     >
       {!tile.imageUrl && <span>{tile.id}</span>}
-      {/* <span style={{
-        fontSize:"3em",
-        color:"white"
-      }}>{tile.assetsId}</span> */}
     </li>
   );
 };
