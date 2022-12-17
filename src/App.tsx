@@ -1,4 +1,4 @@
-import { KeyboardEvent, useRef, useState } from "react";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import Container from "./components/container";
 import Tile from "./components/tile";
 import UseSnackbar from "./components/useSnackbar";
@@ -17,6 +17,7 @@ function App() {
   const inputTierRef = useRef<HTMLInputElement>(null);
   const inputTileRef = useRef<HTMLInputElement>(null);
   const tiersRef = useRef<HTMLUListElement>(null);
+  const tilesRef = useRef<HTMLUListElement>(null);
   const tileCounter = useRef<number>(0);
   const tierCounter = useRef<number>(0);
 
@@ -24,6 +25,8 @@ function App() {
     { title: "default", children: [] },
   ]);
   const [iTiles, setITiles] = useState<ITile[]>([]);
+  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
+  const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
 
   function handleTierInput() {
     console.log("########Handle tier input########");
@@ -70,9 +73,14 @@ function App() {
     }
   }
 
+  function triggerSnackbar(message:string){
+    snackbarMessage.current = message;
+    setIsSnackbarOpen(true);
+  }
+
   return (
     <div className="app">
-      {/* {true && <UseSnackbar message="Drag tiles out of grey zone to remove"/>} */}
+      {isSnackbarOpen && <UseSnackbar message={snackbarMessage.current} setIsSnackbarOpen={setIsSnackbarOpen}/>}
       <ul className="tier-section" ref={tiersRef}>
         <header>
           <div className="add-tier">
@@ -102,8 +110,10 @@ function App() {
               key={`container${tierCounter.current++}`}
               tier={iTier}
               tiersRef={tiersRef}
+              tilesRef={tilesRef}
               setITiers={setITiers}
               setITiles={setITiles}
+              triggerSnackbar={triggerSnackbar}
               children={iTier.children}
             />
           ))
@@ -111,7 +121,7 @@ function App() {
           <div className="no-tiers">No tiers</div>
         )}
       </ul>
-      <div className="tile-section">
+      <ul className="tile-section" ref={tilesRef}>
         <header>
           <div className="add-tile">
             <label>
@@ -140,17 +150,15 @@ function App() {
               key={`${iTile.id}`}
               tile={iTile}
               tiersRef={tiersRef}
+              tilesRef={tilesRef}
               setITiers={setITiers}
               setITiles={setITiles}
             />
           ))}
         </div>
-      </div>
+      </ul>
     </div>
   );
 }
 
 export default App;
-function useEffect(arg0: () => void, arg1: never[]) {
-  throw new Error("Function not implemented.");
-}

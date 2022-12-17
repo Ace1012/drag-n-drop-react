@@ -7,21 +7,24 @@ import Tile from "./tile";
 interface ContainerProps {
   tier: ITier;
   tiersRef: React.RefObject<HTMLUListElement>;
+  tilesRef: React.RefObject<HTMLUListElement>;
   setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
   setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
+  triggerSnackbar: (message: string) => void;
   children: ITile[];
 }
 
 const Container = ({
   tier,
   tiersRef,
+  tilesRef,
   setITiers,
   setITiles,
+  triggerSnackbar,
   children,
 }: ContainerProps) => {
   const tierContainerRef = useRef<HTMLLIElement>(null);
   const contentAreaRef = useRef<HTMLUListElement>(null);
-  const isOver = useRef(false); //Limit the number of invocations of dragOver
   const customMenuRef = useRef<HTMLDivElement>(null);
 
   const [isDraggingTier, setIsDraggingTier] = useState(false);
@@ -34,42 +37,45 @@ const Container = ({
 
   function dragOver(e: React.DragEvent) {
     e.preventDefault();
-    if (!isDraggingTier && !isOver.current) {
-      isOver.current = true;
+    const tierRect = tierContainerRef.current!.getBoundingClientRect();
+    const tierMiddle = tierRect.top + tierRect.height / 2;
+    const delta = e.clientY - tierMiddle;
+    console.log("Delta: ", delta);
+    if (!isDraggingTier) {
       tierContainerRef.current!.style.border = "1px solid yellow";
+      if (delta <= 0) {
+        console.log("Top");
+        // tierContainerRef.current!.style.background =
+        //   "linear-gradient(to bottom, rgb(45, 230, 230, 0.5) 50%, transparent 50%)";
+        tierContainerRef.current!.style.boxShadow = "inset 0 20px 10px cyan"
+      } else {
+        console.log("Bottom");
+        // tierContainerRef.current!.style.background =
+        //   "linear-gradient(to bottom, transparent 50%, rgb(45, 230, 230, 0.5) 50%)";
+        tierContainerRef.current!.style.boxShadow = "inset 0 -20px 10px cyan"
+      }
     }
   }
 
   function dragLeave(e: React.DragEvent) {
     tierContainerRef.current!.style.border = "";
+    tierContainerRef.current!.style.background = "";
     contentAreaRef.current!.style.boxShadow = "";
-    if (isOver.current) {
-      isOver.current = false;
-    }
   }
-  
+
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
+    triggerSnackbar("Dropped in container")
     if (e.dataTransfer.getData("tier")) {
-      console.log(
-        "=========>Dragged tier",
-        JSON.parse(e.dataTransfer.getData("tier"))
-      );
       reOrganizeTiers(e);
     } else if (e.dataTransfer.getData("tile")) {
-      console.log(
-        "=========>Dragged tile",
-        JSON.parse(e.dataTransfer.getData("tile"))
-      );
       if (e.dataTransfer.getData("tile-tier")) {
         const tile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
         const tierTile = JSON.parse(
           e.dataTransfer.getData("tile-tier")
         ) as ITier;
-        console.log("Has tier");
         tileDrop(e, tile, { tier: tierTile });
       } else {
-        console.log("No tier");
         tileDrop(e, JSON.parse(e.dataTransfer.getData("tile")));
       }
     }
@@ -98,7 +104,7 @@ const Container = ({
           return prevTier;
         })
       );
-    }  else {
+    } else {
       console.log("Drop condition 3: Adding tile to tier");
       setITiles((prevTiles) =>
         prevTiles.length === 1
@@ -206,6 +212,7 @@ const Container = ({
               setITiers={setITiers}
               setITiles={setITiles}
               tiersRef={tiersRef}
+              tilesRef={tilesRef}
               tier={tier}
               tile={iTile!}
             />

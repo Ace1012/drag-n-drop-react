@@ -3,6 +3,7 @@ import * as React from "react";
 interface IUseSnackbarProps {
   message: string;
   customStyle?: Pick<React.CSSProperties, "color">;
+  setIsSnackbarOpen: (x:boolean) => void;
 }
 const defaultStyles: React.CSSProperties = {
   position: "fixed",
@@ -14,16 +15,19 @@ const defaultStyles: React.CSSProperties = {
   transition: "all ease-in-out 150ms",
 };
 
-const UseSnackbar = ({ message, customStyle }: IUseSnackbarProps) => {
+const UseSnackbar = ({ message, customStyle, setIsSnackbarOpen }: IUseSnackbarProps) => {
   const [bottom, setBottom] = React.useState("-10em");
   React.useEffect(() => {
     const popUp = () => {
       setTimeout(() => {
         setBottom("10em");
-      }, 1000);
+      },500)
       setTimeout(() => {
         setBottom("-10em");
-      }, 3000);
+      }, 2000);
+      setTimeout(() => {
+        setIsSnackbarOpen(false)
+      }, 4000);
     };
     popUp();
   }, []);
