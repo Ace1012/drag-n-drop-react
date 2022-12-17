@@ -12,18 +12,19 @@ const defaultStyles: React.CSSProperties = {
   padding: "1em",
   borderRadius: "8px",
   width: "fit-content",
+  zIndex:"1000",
   transition: "all ease-in-out 150ms",
 };
 
 const UseSnackbar = ({ message, customStyle, setIsSnackbarOpen }: IUseSnackbarProps) => {
-  const [bottom, setBottom] = React.useState("-10em");
+  const [top, setTop] = React.useState("-10em");
   React.useEffect(() => {
     const popUp = () => {
       setTimeout(() => {
-        setBottom("10em");
+        setTop("10em");
       },500)
       setTimeout(() => {
-        setBottom("-10em");
+        setTop("-10em");
       }, 2000);
       setTimeout(() => {
         setIsSnackbarOpen(false)
@@ -34,7 +35,7 @@ const UseSnackbar = ({ message, customStyle, setIsSnackbarOpen }: IUseSnackbarPr
   return (
     <div
       className="snackbar"
-      style={{ ...defaultStyles, ...customStyle, bottom }}
+      style={{ ...defaultStyles, ...customStyle, top }}
     >
       {message}
     </div>

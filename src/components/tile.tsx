@@ -39,9 +39,9 @@ const Tile = ({
     const delta = e.clientX - tileMiddle;
     console.log("Delta: ", delta);
     const dragTile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
-    const dragTileTier = JSON.parse(
+    const dragTileTier = e.dataTransfer.getData("tile-tier") ? JSON.parse(
       e.dataTransfer.getData("tile-tier")
-    ) as ITier;
+    ) as ITier : null;
 
     if (tier) {
       console.log("In a parent!!!");
@@ -51,7 +51,7 @@ const Tile = ({
         );
       setITiers((prevTiers) =>
         prevTiers.map((prevTier) => {
-          if (prevTier.title === dragTileTier.title) {
+          if (prevTier.title === dragTileTier!.title) {
             prevTier.children = prevTier.children.filter(
               (prevTile) => prevTile.id !== dragTile.id
             );
@@ -118,12 +118,12 @@ const Tile = ({
       tierRect.bottom < pointerPositon.y ||
       tierRect.left > pointerPositon.x ||
       tierRect.right < pointerPositon.x;
-    const tilesRect = tiersRef.current!.getBoundingClientRect();
+    const tilesRect = tilesRef.current!.getBoundingClientRect();
     const isOutsideTiles =
-      tierRect.top > pointerPositon.y ||
-      tierRect.bottom < pointerPositon.y ||
-      tierRect.left > pointerPositon.x ||
-      tierRect.right < pointerPositon.x;
+      tilesRect.top > pointerPositon.y ||
+      tilesRect.bottom < pointerPositon.y ||
+      tilesRect.left > pointerPositon.x ||
+      tilesRect.right < pointerPositon.x;
     if (isOutsideTiers && tier) removeTile(tile.id, tier);
     else if (isOutsideTiles && !tier) {
       setITiles((prevTiles) =>

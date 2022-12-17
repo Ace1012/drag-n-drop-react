@@ -24,6 +24,8 @@ const Container = ({
   children,
 }: ContainerProps) => {
   const tierContainerRef = useRef<HTMLLIElement>(null);
+  const tierContainerHeaderRef = useRef<HTMLLIElement>(null);
+  const tierContainerFooterRef = useRef<HTMLLIElement>(null);
   const contentAreaRef = useRef<HTMLUListElement>(null);
   const customMenuRef = useRef<HTMLDivElement>(null);
 
@@ -40,19 +42,20 @@ const Container = ({
     const tierRect = tierContainerRef.current!.getBoundingClientRect();
     const tierMiddle = tierRect.top + tierRect.height / 2;
     const delta = e.clientY - tierMiddle;
-    console.log("Delta: ", delta);
     if (!isDraggingTier) {
-      tierContainerRef.current!.style.border = "1px solid yellow";
+      // tierContainerRef.current!.style.border = "1px solid yellow";
       if (delta <= 0) {
-        console.log("Top");
         // tierContainerRef.current!.style.background =
         //   "linear-gradient(to bottom, rgb(45, 230, 230, 0.5) 50%, transparent 50%)";
-        tierContainerRef.current!.style.boxShadow = "inset 0 20px 10px cyan"
+        tierContainerRef.current!.style.boxShadow = "inset 0 20px 10px cyan";
+        tierContainerHeaderRef.current!.style.boxShadow = "inset 10px 20px 10px cyan";
+        tierContainerFooterRef.current!.style.boxShadow = "inset -10px 20px 10px cyan";
       } else {
-        console.log("Bottom");
         // tierContainerRef.current!.style.background =
         //   "linear-gradient(to bottom, transparent 50%, rgb(45, 230, 230, 0.5) 50%)";
-        tierContainerRef.current!.style.boxShadow = "inset 0 -20px 10px cyan"
+        tierContainerRef.current!.style.boxShadow = "inset 0 -20px 10px cyan";
+        tierContainerHeaderRef.current!.style.boxShadow = "inset 10px -20px 10px cyan";
+        tierContainerFooterRef.current!.style.boxShadow = "inset -10px -20px 10px cyan";
       }
     }
   }
@@ -60,12 +63,13 @@ const Container = ({
   function dragLeave(e: React.DragEvent) {
     tierContainerRef.current!.style.border = "";
     tierContainerRef.current!.style.background = "";
+    tierContainerHeaderRef.current!.style.boxShadow = ""
+    tierContainerFooterRef.current!.style.boxShadow = ""
     contentAreaRef.current!.style.boxShadow = "";
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
-    triggerSnackbar("Dropped in container")
     if (e.dataTransfer.getData("tier")) {
       reOrganizeTiers(e);
     } else if (e.dataTransfer.getData("tile")) {
@@ -138,6 +142,7 @@ const Container = ({
     const closestTier = tier;
     let index: number;
     if (delta <= 0) {
+      triggerSnackbar(`Placed "${dragTier.title.toUpperCase()}" before "${tier.title.toUpperCase()}"`)
       setITiers((prevTiers) => {
         let tempTiers = prevTiers.filter(
           (tier) => tier.title !== dragTier.title
@@ -147,6 +152,7 @@ const Container = ({
         return tempTiers;
       });
     } else {
+      triggerSnackbar(`Placed "${dragTier.title.toUpperCase()}" after "${tier.title.toUpperCase()}"`)
       setITiers((prevTiers) => {
         let tempTiers = prevTiers.filter(
           (tier) => tier.title !== dragTier.title
@@ -196,6 +202,7 @@ const Container = ({
       className="tier-container"
     >
       <header
+      ref={tierContainerHeaderRef}
         onMouseEnter={(e) => handleDraggable(e)}
         onMouseLeave={(e) => handleDraggable(e)}
       >
@@ -227,7 +234,7 @@ const Container = ({
           </span>
         )}
       </ul>
-      <footer>
+      <footer ref={tierContainerFooterRef}>
         <AiFillSetting
           className="footer-icon"
           onClick={(e) => handleCog(e)}

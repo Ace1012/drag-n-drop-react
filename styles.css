@@ -48,7 +48,8 @@ option.change-color-option:before {
 .app {
   width: 100vw;
   height: 100vh;
-  padding: 3em 0;
+  padding: 6em 0;
+  /* border: 1px solid white; */
   display: flex;
   flex-direction: column;
   justify-content: start;
@@ -126,6 +127,7 @@ option.change-color-option:before {
   min-height: 100%;
   height: fit-content;
   padding: 0.5em;
+  transition: all ease-in-out 150ms;
 }
 
 .tier-container header {
