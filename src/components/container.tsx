@@ -29,7 +29,7 @@ const Container = ({
   const contentAreaRef = useRef<HTMLUListElement>(null);
   const customMenuRef = useRef<HTMLDivElement>(null);
 
-  const [isDraggingTier, setIsDraggingTier] = useState(false);
+  const [isDraggingThisTier, setIsDraggingThisTier] = useState(false);
   const [isCustomizationMenuOpen, setIsCustomizationMenuOpen] = useState(false);
 
   function dragStart(e: React.DragEvent) {
@@ -42,35 +42,43 @@ const Container = ({
     const tierRect = tierContainerRef.current!.getBoundingClientRect();
     const tierMiddle = tierRect.top + tierRect.height / 2;
     const delta = e.clientY - tierMiddle;
-    if (!isDraggingTier) {
-      // tierContainerRef.current!.style.border = "1px solid yellow";
+    const isDraggingTier = e.dataTransfer.types.includes("tier")
+    if (!isDraggingThisTier && isDraggingTier) {
       if (delta <= 0) {
-        // tierContainerRef.current!.style.background =
-        //   "linear-gradient(to bottom, rgb(45, 230, 230, 0.5) 50%, transparent 50%)";
-        tierContainerRef.current!.style.boxShadow = "inset 0 20px 10px cyan";
-        tierContainerHeaderRef.current!.style.boxShadow = "inset 10px 20px 10px cyan";
-        tierContainerFooterRef.current!.style.boxShadow = "inset -10px 20px 10px cyan";
+        tierContainerRef.current!.dataset.positon = "before";
+        tierContainerHeaderRef.current!.style.boxShadow =
+          "inset 10px 20px 10px cyan";
+        tierContainerFooterRef.current!.style.boxShadow =
+          "inset -10px 20px 10px cyan";
       } else {
-        // tierContainerRef.current!.style.background =
-        //   "linear-gradient(to bottom, transparent 50%, rgb(45, 230, 230, 0.5) 50%)";
-        tierContainerRef.current!.style.boxShadow = "inset 0 -20px 10px cyan";
-        tierContainerHeaderRef.current!.style.boxShadow = "inset 10px -20px 10px cyan";
-        tierContainerFooterRef.current!.style.boxShadow = "inset -10px -20px 10px cyan";
+        tierContainerRef.current!.dataset.positon = "after";
+        tierContainerHeaderRef.current!.style.boxShadow =
+          "inset 10px -20px 10px cyan";
+        tierContainerFooterRef.current!.style.boxShadow =
+          "inset -10px -20px 10px cyan";
       }
+    }else if(!isDraggingTier){
+      tierContainerRef.current!.style.border = "1px solid yellow";
     }
   }
-
+  
+  function dragEnd() {
+    tierContainerRef.current!.style.opacity = "";
+  }
+  
   function dragLeave(e: React.DragEvent) {
     tierContainerRef.current!.style.border = "";
-    tierContainerRef.current!.style.background = "";
-    tierContainerHeaderRef.current!.style.boxShadow = ""
-    tierContainerFooterRef.current!.style.boxShadow = ""
+    tierContainerRef.current!.style.boxShadow = "";
+    tierContainerHeaderRef.current!.style.boxShadow = "";
+    tierContainerFooterRef.current!.style.boxShadow = "";
     contentAreaRef.current!.style.boxShadow = "";
+    delete tierContainerRef.current!.dataset.positon
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
-    if (e.dataTransfer.getData("tier")) {
+    const dragTierRaw = e.dataTransfer.getData("tier")
+    if (dragTierRaw && (JSON.parse(dragTierRaw) as ITier).title !== tier.title) {
       reOrganizeTiers(e);
     } else if (e.dataTransfer.getData("tile")) {
       if (e.dataTransfer.getData("tile-tier")) {
@@ -83,6 +91,7 @@ const Container = ({
         tileDrop(e, JSON.parse(e.dataTransfer.getData("tile")));
       }
     }
+    tierContainerRef.current!.removeAttribute("data-position");
   }
 
   function tileDrop(
@@ -142,7 +151,9 @@ const Container = ({
     const closestTier = tier;
     let index: number;
     if (delta <= 0) {
-      triggerSnackbar(`Placed "${dragTier.title.toUpperCase()}" before "${tier.title.toUpperCase()}"`)
+      triggerSnackbar(
+        `Placed "${dragTier.title.toUpperCase()}" before "${tier.title.toUpperCase()}"`
+      );
       setITiers((prevTiers) => {
         let tempTiers = prevTiers.filter(
           (tier) => tier.title !== dragTier.title
@@ -152,7 +163,9 @@ const Container = ({
         return tempTiers;
       });
     } else {
-      triggerSnackbar(`Placed "${dragTier.title.toUpperCase()}" after "${tier.title.toUpperCase()}"`)
+      triggerSnackbar(
+        `Placed "${dragTier.title.toUpperCase()}" after "${tier.title.toUpperCase()}"`
+      );
       setITiers((prevTiers) => {
         let tempTiers = prevTiers.filter(
           (tier) => tier.title !== dragTier.title
@@ -184,32 +197,35 @@ const Container = ({
 
   function handleDraggable(e: React.MouseEvent<HTMLElement, MouseEvent>) {
     if (e.type === "mouseenter") {
-      setIsDraggingTier(true);
+      setIsDraggingThisTier(true);
     }
     if (e.type === "mouseleave") {
-      setIsDraggingTier(false);
+      setIsDraggingThisTier(false);
     }
   }
 
   return (
     <li
       ref={tierContainerRef}
-      draggable={isDraggingTier}
+      draggable={isDraggingThisTier}
       onDrop={onDrop}
       onDragStart={(e) => dragStart(e)}
+      onDragEnd={dragEnd}
       onDragOver={(e) => dragOver(e)}
       onDragLeave={(e) => dragLeave(e)}
       className="tier-container"
     >
       <header
-      ref={tierContainerHeaderRef}
+        ref={tierContainerHeaderRef}
         onMouseEnter={(e) => handleDraggable(e)}
         onMouseLeave={(e) => handleDraggable(e)}
+        onDragLeave={e => e.stopPropagation()}
       >
         {tier.title}
       </header>
       <ul
         ref={contentAreaRef}
+        onDragLeave={e => e.stopPropagation()}
         className={`content ${children.length > 0 ? "has-children" : ""}`}
       >
         {children.length > 0 ? (
@@ -238,6 +254,7 @@ const Container = ({
         <AiFillSetting
           className="footer-icon"
           onClick={(e) => handleCog(e)}
+          onDragLeave={e => e.stopPropagation()}
           size={30}
           color="rgb(130, 130, 130)"
         />

@@ -80,7 +80,7 @@ function App() {
 
   return (
     <div className="app">
-      {isSnackbarOpen && <UseSnackbar message={snackbarMessage.current} setIsSnackbarOpen={setIsSnackbarOpen}/>}
+      {/* {isSnackbarOpen && <UseSnackbar message={snackbarMessage.current} setIsSnackbarOpen={setIsSnackbarOpen}/>} */}
       <ul className="tier-section" ref={tiersRef}>
         <header>
           <div className="add-tier">
