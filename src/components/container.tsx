@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ITier, ITile } from "../App";
 import { FaTrash } from "react-icons/fa";
 import { AiFillSetting } from "react-icons/ai";
@@ -42,43 +42,46 @@ const Container = ({
     const tierRect = tierContainerRef.current!.getBoundingClientRect();
     const tierMiddle = tierRect.top + tierRect.height / 2;
     const delta = e.clientY - tierMiddle;
-    const isDraggingTier = e.dataTransfer.types.includes("tier")
+    const isDraggingTier = e.dataTransfer.types.includes("tier");
     if (!isDraggingThisTier && isDraggingTier) {
       if (delta <= 0) {
         tierContainerRef.current!.dataset.positon = "before";
         tierContainerHeaderRef.current!.style.boxShadow =
-          "inset 10px 20px 10px cyan";
+          "inset 10px 15px 10px cyan";
         tierContainerFooterRef.current!.style.boxShadow =
-          "inset -10px 20px 10px cyan";
+          "inset -10px 15px 10px cyan";
       } else {
         tierContainerRef.current!.dataset.positon = "after";
         tierContainerHeaderRef.current!.style.boxShadow =
-          "inset 10px -20px 10px cyan";
+          "inset 10px -15px 10px cyan";
         tierContainerFooterRef.current!.style.boxShadow =
-          "inset -10px -20px 10px cyan";
+          "inset -10px -15px 10px cyan";
       }
-    }else if(!isDraggingTier){
+    } else if (!isDraggingTier) {
       tierContainerRef.current!.style.border = "1px solid yellow";
     }
   }
-  
+
   function dragEnd() {
     tierContainerRef.current!.style.opacity = "";
   }
-  
+
   function dragLeave(e: React.DragEvent) {
     tierContainerRef.current!.style.border = "";
     tierContainerRef.current!.style.boxShadow = "";
     tierContainerHeaderRef.current!.style.boxShadow = "";
     tierContainerFooterRef.current!.style.boxShadow = "";
     contentAreaRef.current!.style.boxShadow = "";
-    delete tierContainerRef.current!.dataset.positon
+    delete tierContainerRef.current!.dataset.positon;
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
-    const dragTierRaw = e.dataTransfer.getData("tier")
-    if (dragTierRaw && (JSON.parse(dragTierRaw) as ITier).title !== tier.title) {
+    const dragTierRaw = e.dataTransfer.getData("tier");
+    if (
+      dragTierRaw &&
+      (JSON.parse(dragTierRaw) as ITier).title !== tier.title
+    ) {
       reOrganizeTiers(e);
     } else if (e.dataTransfer.getData("tile")) {
       if (e.dataTransfer.getData("tile-tier")) {
@@ -99,11 +102,8 @@ const Container = ({
     iTile: ITile,
     options?: { tier: ITier }
   ) {
-    console.log("########Tile drop########");
-    console.log("Event", e, iTile, "options\n", options);
     if (options?.tier) {
       console.log("Drop condition 1: Moving tile from one tier to another");
-      console.log(options.tier);
       setITiers((prevTiers) =>
         prevTiers.map((prevTier) => {
           if (prevTier.title === options.tier.title) {
@@ -136,13 +136,11 @@ const Container = ({
   }
 
   function removeTier(title: string) {
-    console.log("########Remove tier########");
     setITiles((prevTiles) => [...prevTiles, ...tier.children]);
     setITiers((prev) => prev.filter((tier) => tier.title !== title));
   }
 
   function reOrganizeTiers(e: React.DragEvent) {
-    console.log("########Reorganize Tiers########");
     const dragTier = JSON.parse(e.dataTransfer.getData("tier")) as ITier;
     if (!dragTier) return;
     const tierRect = tierContainerRef.current!.getBoundingClientRect();
@@ -204,6 +202,32 @@ const Container = ({
     }
   }
 
+  useEffect(() => {
+    window.onbeforeunload = function (e) {
+      localStorage.clear();
+    };
+    if (localStorage.getItem(`page-loaded`) === null) {
+      localStorage.setItem(`page-loaded`, "true");
+      setTimeout(() => {
+        if (tierContainerHeaderRef.current) {
+          tierContainerHeaderRef.current.style.transition =
+            "all ease-in-out 150ms, box-shadow ease-in-out 1s";
+          tierContainerHeaderRef.current.style.boxShadow = "0 0 10px 3px cyan";
+        }
+      }, 1000);
+      setTimeout(() => {
+        if (tierContainerHeaderRef.current) {
+          tierContainerHeaderRef.current.style.boxShadow = "";
+        }
+      }, 2000);
+      setTimeout(() => {
+        if (tierContainerHeaderRef.current) {
+          tierContainerHeaderRef.current.style.transition = "";
+        }
+      }, 3000);
+    }
+  }, []);
+
   return (
     <li
       ref={tierContainerRef}
@@ -219,13 +243,13 @@ const Container = ({
         ref={tierContainerHeaderRef}
         onMouseEnter={(e) => handleDraggable(e)}
         onMouseLeave={(e) => handleDraggable(e)}
-        onDragLeave={e => e.stopPropagation()}
+        onDragLeave={(e) => e.stopPropagation()}
       >
         {tier.title}
       </header>
       <ul
         ref={contentAreaRef}
-        onDragLeave={e => e.stopPropagation()}
+        onDragLeave={(e) => e.stopPropagation()}
         className={`content ${children.length > 0 ? "has-children" : ""}`}
       >
         {children.length > 0 ? (
@@ -254,7 +278,7 @@ const Container = ({
         <AiFillSetting
           className="footer-icon"
           onClick={(e) => handleCog(e)}
-          onDragLeave={e => e.stopPropagation()}
+          onDragLeave={(e) => e.stopPropagation()}
           size={30}
           color="rgb(130, 130, 130)"
         />

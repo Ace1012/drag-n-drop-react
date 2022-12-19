@@ -20,8 +20,25 @@ const Tile = ({
 }: TileProps) => {
   const tileRef = useRef<HTMLLIElement>(null);
 
+  function onDropPosition(e: React.DragEvent<HTMLElement>) {
+    const pointerPositon = { y: e.clientY, x: e.clientX };
+    const tierRect = tiersRef.current!.getBoundingClientRect();
+    const isOutsideTiers =
+      tierRect.top > pointerPositon.y ||
+      tierRect.bottom < pointerPositon.y ||
+      tierRect.left > pointerPositon.x ||
+      tierRect.right < pointerPositon.x;
+    const tilesRect = tilesRef.current!.getBoundingClientRect();
+    const isOutsideTiles =
+      tilesRect.top > pointerPositon.y ||
+      tilesRect.bottom < pointerPositon.y ||
+      tilesRect.left > pointerPositon.x ||
+      tilesRect.right < pointerPositon.x;
+
+    return { isOutsideTiers, isOutsideTiles };
+  }
+
   function removeTile(tileId: string, parentTier: ITier) {
-    console.log("########Remove tile########");
     const tempTile = parentTier.children.find((tile) => tile.id === tileId)!;
     setITiers((prevTiers) =>
       prevTiers.map((tier) => {
@@ -32,69 +49,51 @@ const Tile = ({
     setITiles((prevTiles) => [...prevTiles, tempTile]);
   }
 
-  function editTiles(e: React.DragEvent) {
-    console.log("Editing tiles");
+  function editTiles(e: React.DragEvent<HTMLElement>) {
     const tileRect = tileRef.current!.getBoundingClientRect();
     const tileMiddle = tileRect.left + tileRect.width / 2;
     const delta = e.clientX - tileMiddle;
-    console.log("Delta: ", delta);
     const dragTile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
-    const dragTileTier = e.dataTransfer.getData("tile-tier") ? JSON.parse(
-      e.dataTransfer.getData("tile-tier")
-    ) as ITier : null;
+    const dragTileTier = e.dataTransfer.getData("tile-tier")
+      ? (JSON.parse(e.dataTransfer.getData("tile-tier")) as ITier)
+      : null;
 
     if (tier) {
-      console.log("In a parent!!!");
-      !dragTileTier &&
+      if (!dragTileTier) {
         setITiles((prevTiles) =>
-          prevTiles.filter((prevTile) => prevTile.id !== dragTile.id)
+        prevTiles.filter((prevTile) => prevTile.id !== dragTile.id)
         );
-      setITiers((prevTiers) =>
-        prevTiers.map((prevTier) => {
-          if (prevTier.title === dragTileTier!.title) {
-            prevTier.children = prevTier.children.filter(
-              (prevTile) => prevTile.id !== dragTile.id
-            );
-          }
-          if (prevTier.title === tier.title) {
-            prevTier.children = prevTier.children.filter(
-              (prevTile) => prevTile.id !== dragTile.id
-            );
-            if (delta <= 0) {
-              console.log("Placing before");
-              console.log(
-                "Current tile index: ",
-                prevTier.children.indexOf(tile)
+      } else {
+        setITiers((prevTiers) =>
+          prevTiers.map((prevTier) => {
+            if (prevTier.title === tier.title) {
+              prevTier.children = prevTier.children.filter(
+                (prevTile) => prevTile.id !== dragTile.id
               );
-              prevTier.children.splice(
-                prevTier.children.indexOf(tile),
-                0,
-                dragTile
-              );
-            } else {
-              console.log("Placing after");
-              console.log(
-                "Current tile index: ",
-                prevTier.children.indexOf(tile)
-              );
-              prevTier.children.splice(
-                prevTier.children.indexOf(tile) + 1,
-                0,
-                dragTile
-              );
+              if (delta <= 0) {
+                prevTier.children.splice(
+                  prevTier.children.indexOf(tile),
+                  0,
+                  dragTile
+                );
+              } else {
+                prevTier.children.splice(
+                  prevTier.children.indexOf(tile) + 1,
+                  0,
+                  dragTile
+                );
+              }
             }
-          }
-          return prevTier;
-        })
-      );
+            return prevTier;
+          })
+        );
+      }
     } else {
       setITiles((prevTiles) => {
         prevTiles = prevTiles.filter((prevTile) => prevTile.id !== dragTile.id);
         if (delta <= 0) {
-          console.log("Placing before");
           prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
         } else {
-          console.log("Placing after");
           prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
         }
         return prevTiles;
@@ -111,21 +110,10 @@ const Tile = ({
 
   function onDragEnd(e: React.DragEvent<HTMLLIElement>) {
     e.stopPropagation();
-    const pointerPositon = { y: e.clientY, x: e.clientX };
-    const tierRect = tiersRef.current!.getBoundingClientRect();
-    const isOutsideTiers =
-      tierRect.top > pointerPositon.y ||
-      tierRect.bottom < pointerPositon.y ||
-      tierRect.left > pointerPositon.x ||
-      tierRect.right < pointerPositon.x;
-    const tilesRect = tilesRef.current!.getBoundingClientRect();
-    const isOutsideTiles =
-      tilesRect.top > pointerPositon.y ||
-      tilesRect.bottom < pointerPositon.y ||
-      tilesRect.left > pointerPositon.x ||
-      tilesRect.right < pointerPositon.x;
+    const { isOutsideTiers, isOutsideTiles } = onDropPosition(e);
+
     if (isOutsideTiers && tier) removeTile(tile.id, tier);
-    else if (isOutsideTiles && !tier) {
+    else if (isOutsideTiles && isOutsideTiers && !tier) {
       setITiles((prevTiles) =>
         prevTiles.filter((prevTile) => prevTile.id !== tile.id)
       );
@@ -138,7 +126,7 @@ const Tile = ({
     e.stopPropagation();
   }
 
-  function onDrop(e: React.DragEvent) {
+  function onDrop(e: React.DragEvent<HTMLElement>) {
     e.stopPropagation();
     e.preventDefault();
     const dragTile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
@@ -158,13 +146,12 @@ const Tile = ({
       onDrop={onDrop}
       draggable
       style={{
-        backgroundImage: tile.imageUrl,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        backgroundImage: tile.imageUrl ? tile.imageUrl : "",
+        backgroundColor: tile.name ? "lightgrey" : "",
+        color: tile.name ? "black" : "",
       }}
     >
-      {!tile.imageUrl && <span>{tile.id}</span>}
+      {tile.name && <span>{tile.name}</span>}
     </li>
   );
 };

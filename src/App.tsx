@@ -1,4 +1,4 @@
-import { KeyboardEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
 import Container from "./components/container";
 import Tile from "./components/tile";
 import UseSnackbar from "./components/useSnackbar";
@@ -10,12 +10,14 @@ export interface ITier {
 
 export interface ITile {
   id: string;
+  name?: string;
   imageUrl?: string;
 }
 
 function App() {
   const inputTierRef = useRef<HTMLInputElement>(null);
-  const inputTileRef = useRef<HTMLInputElement>(null);
+  const inputTileUrlRef = useRef<HTMLInputElement>(null);
+  const inputTileNameRef = useRef<HTMLInputElement>(null);
   const tiersRef = useRef<HTMLUListElement>(null);
   const tilesRef = useRef<HTMLUListElement>(null);
   const tileCounter = useRef<number>(0);
@@ -26,10 +28,11 @@ function App() {
   ]);
   const [iTiles, setITiles] = useState<ITile[]>([]);
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
+  const [isNameDisabled, setIsNameDisabled] = useState(false);
+  const [isUrlDisabled, setIsUrlDisabled] = useState(false);
   const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
 
   function handleTierInput() {
-    console.log("########Handle tier input########");
     const tierTitle = inputTierRef.current?.value;
     if (tierTitle === "") {
       alert("Cannot add empty tier");
@@ -49,38 +52,104 @@ function App() {
   }
 
   function handleTileInput() {
-    console.log("########Handle tile input########");
-    const tileImageUrl = inputTileRef.current?.value!;
-    if (tileImageUrl === "") return;
-    const newTile = {
-      id: `tile${tileCounter.current}`,
-      assetsId: tileCounter.current++,
-      imageUrl: `url(${tileImageUrl})`,
-    } as ITile;
+    const tileImageUrl = inputTileUrlRef.current?.value;
+    const tileName = inputTileNameRef.current?.value;
+    if (tileImageUrl === "" && tileName === "") {
+      alert("Fill in the name or paste a url");
+      return;
+    }
+    if (
+      iTiles.some(
+        (tile) => tile.name === tileName || tile.imageUrl === tileImageUrl
+      )
+    ) {
+      alert("Tile already exists");
+      return;
+    }
+
+    let newTile: ITile = {
+      id: "",
+    };
+    if (isNameDisabled) {
+      newTile = {
+        id: `tile${tileCounter.current++}`,
+        imageUrl: `url(${tileImageUrl})`,
+      };
+    } else if (isUrlDisabled) {
+      newTile = {
+        id: `tile${tileCounter.current++}`,
+        name: `${tileName}`,
+      };
+    }
     console.log(newTile);
     setITiles((prevTiles) => [...prevTiles, newTile]);
-    inputTileRef.current!.value = "";
+    inputTileUrlRef.current!.value = "";
+    inputTileNameRef.current!.value = "";
+    setIsNameDisabled(false);
+    setIsUrlDisabled(false);
   }
 
-  function onInputEnter(e: KeyboardEvent<HTMLInputElement>) {
+  function onInputChange(e: ChangeEvent<HTMLInputElement>) {
+    if (
+      e.currentTarget === inputTileNameRef.current &&
+      !inputTileNameRef.current!.disabled &&
+      !inputTileUrlRef.current!.disabled
+    ) {
+      setIsUrlDisabled(true);
+    } else if (
+      e.currentTarget === inputTileUrlRef.current &&
+      !inputTileNameRef.current!.disabled &&
+      !inputTileUrlRef.current!.disabled
+    ) {
+      setIsNameDisabled(true);
+    }
+
+    if (
+      !inputTileNameRef.current!.disabled &&
+      inputTileNameRef.current!.value.length === 0
+    ) {
+      setIsUrlDisabled(false);
+    } else if (
+      !inputTileUrlRef.current!.disabled &&
+      inputTileUrlRef.current!.value.length === 0
+    ) {
+      setIsNameDisabled(false);
+    }
+  }
+
+  function onInputEnterPressed(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && document.activeElement === inputTierRef.current) {
       handleTierInput();
     } else if (
       e.key === "Enter" &&
-      document.activeElement === inputTileRef.current
+      (document.activeElement === inputTileNameRef.current ||
+        document.activeElement === inputTileUrlRef.current)
     ) {
       handleTileInput();
     }
   }
 
-  function triggerSnackbar(message:string){
+  function triggerSnackbar(message: string) {
     snackbarMessage.current = message;
     setIsSnackbarOpen(true);
   }
 
+  function clearTiers() {
+    setITiers([]);
+  }
+
+  function clearTiles() {
+    setITiles([]);
+  }
+
   return (
     <div className="app">
-      {/* {isSnackbarOpen && <UseSnackbar message={snackbarMessage.current} setIsSnackbarOpen={setIsSnackbarOpen}/>} */}
+      {isSnackbarOpen && (
+        <UseSnackbar
+          message={snackbarMessage.current}
+          setIsSnackbarOpen={setIsSnackbarOpen}
+        />
+      )}
       <ul className="tier-section" ref={tiersRef}>
         <header>
           <div className="add-tier">
@@ -91,35 +160,37 @@ function App() {
                   fontSize: "1.5rem",
                 }}
               >
-                Tier title:{" "}
+                Create tier:{" "}
               </span>
               <input
                 type="text"
                 ref={inputTierRef}
-                onKeyDown={(e) => onInputEnter(e)}
+                onKeyDown={(e) => onInputEnterPressed(e)}
               />
             </label>
             <button onClick={() => handleTierInput()}>
               Click to add new tier
             </button>
           </div>
+          <button onClick={clearTiers}>Delete all tiers</button>
         </header>
-        {iTiers.length > 0 ? (
-          iTiers.map((iTier) => (
-            <Container
-              key={`container${tierCounter.current++}`}
-              tier={iTier}
-              tiersRef={tiersRef}
-              tilesRef={tilesRef}
-              setITiers={setITiers}
-              setITiles={setITiles}
-              triggerSnackbar={triggerSnackbar}
-              children={iTier.children}
-            />
-          ))
-        ) : (
-          <div className="no-tiers">No tiers</div>
+        {iTiers.length > 0 && (
+          <div className="tiers">
+            {iTiers.map((iTier) => (
+              <Container
+                key={`container${tierCounter.current++}`}
+                tier={iTier}
+                tiersRef={tiersRef}
+                tilesRef={tilesRef}
+                setITiers={setITiers}
+                setITiles={setITiles}
+                triggerSnackbar={triggerSnackbar}
+                children={iTier.children}
+              />
+            ))}
+          </div>
         )}
+        {iTiers.length === 0 && <div className="no-tiers">No tiers</div>}
       </ul>
       <ul className="tile-section" ref={tilesRef}>
         <header>
@@ -131,31 +202,47 @@ function App() {
                   fontSize: "1.5rem",
                 }}
               >
-                Tile image url:{" "}
+                Create tile:{" "}
               </span>
               <input
                 type="text"
-                ref={inputTileRef}
-                onKeyDown={(e) => onInputEnter(e)}
+                ref={inputTileNameRef}
+                disabled={isNameDisabled}
+                placeholder="Enter tile name"
+                onChange={(e) => onInputChange(e)}
+                onKeyDown={(e) => onInputEnterPressed(e)}
+              />
+              OR
+              <input
+                type="text"
+                ref={inputTileUrlRef}
+                disabled={isUrlDisabled}
+                placeholder="Paste image url here"
+                onChange={(e) => onInputChange(e)}
+                onKeyDown={(e) => onInputEnterPressed(e)}
               />
             </label>
             <button onClick={() => handleTileInput()}>
               Click to add new tile
             </button>
           </div>
+          <button onClick={clearTiles}>Delete all tiles</button>
         </header>
-        <div className="tiles">
-          {iTiles.map((iTile) => (
-            <Tile
-              key={`${iTile.id}`}
-              tile={iTile}
-              tiersRef={tiersRef}
-              tilesRef={tilesRef}
-              setITiers={setITiers}
-              setITiles={setITiles}
-            />
-          ))}
-        </div>
+        {iTiers.length > 0 && (
+          <div className="tiles">
+            {iTiles.map((iTile) => (
+              <Tile
+                key={`${iTile.id}`}
+                tile={iTile}
+                tiersRef={tiersRef}
+                tilesRef={tilesRef}
+                setITiers={setITiers}
+                setITiles={setITiles}
+              />
+            ))}
+          </div>
+        )}
+        {iTiles.length === 0 && <div className="no-tiles">No tiles</div>}
       </ul>
     </div>
   );
