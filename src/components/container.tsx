@@ -137,7 +137,7 @@ const Container = ({
 
   function removeTier(title: string) {
     setITiles((prevTiles) => [...prevTiles, ...tier.children]);
-    setITiers((prev) => prev.filter((tier) => tier.title !== title));
+    setITiers((prevTiers) => prevTiers.filter((tier) => tier.title !== title));
   }
 
   function reOrganizeTiers(e: React.DragEvent) {

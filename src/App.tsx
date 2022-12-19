@@ -81,10 +81,9 @@ function App() {
         name: `${tileName}`,
       };
     }
-    console.log(newTile);
-    setITiles((prevTiles) => [...prevTiles, newTile]);
     inputTileUrlRef.current!.value = "";
     inputTileNameRef.current!.value = "";
+    setITiles((prevTiles) => [...prevTiles, newTile]);
     setIsNameDisabled(false);
     setIsUrlDisabled(false);
   }
@@ -135,36 +134,39 @@ function App() {
   }
 
   function clearTiers() {
-    setITiers([]);
-  }
-
-  function clearTiles() {
-    setITiles([]);
+    setITiers((prevTiers) => {
+      setITiles((prevTiles) => {
+        return [
+          ...prevTiles,
+          ...prevTiers.reduce(
+            (children, prevTier) => {
+              return [...children, ...prevTier.children];
+            },
+            [...prevTiles]
+          ),
+        ];
+      });
+      return [];
+    });
   }
 
   return (
     <div className="app">
-      {isSnackbarOpen && (
+      {/* {isSnackbarOpen && (
         <UseSnackbar
           message={snackbarMessage.current}
           setIsSnackbarOpen={setIsSnackbarOpen}
         />
-      )}
+      )} */}
       <ul className="tier-section" ref={tiersRef}>
         <header>
           <div className="add-tier">
             <label>
-              <span
-                style={{
-                  color: "lightgrey",
-                  fontSize: "1.5rem",
-                }}
-              >
-                Create tier:{" "}
-              </span>
+              <span>Create tier: </span>
               <input
                 type="text"
                 ref={inputTierRef}
+                placeholder="Enter tier name"
                 onKeyDown={(e) => onInputEnterPressed(e)}
               />
             </label>
@@ -174,7 +176,9 @@ function App() {
           </div>
           <button onClick={clearTiers}>Delete all tiers</button>
         </header>
-        {iTiers.length > 0 && (
+        {iTiers.length === 0 ? (
+          <div className="no-tiers">No tiers</div>
+        ) : (
           <div className="tiers">
             {iTiers.map((iTier) => (
               <Container
@@ -190,20 +194,12 @@ function App() {
             ))}
           </div>
         )}
-        {iTiers.length === 0 && <div className="no-tiers">No tiers</div>}
       </ul>
       <ul className="tile-section" ref={tilesRef}>
         <header>
           <div className="add-tile">
             <label>
-              <span
-                style={{
-                  color: "lightgrey",
-                  fontSize: "1.5rem",
-                }}
-              >
-                Create tile:{" "}
-              </span>
+              <span>Create tile: </span>
               <input
                 type="text"
                 ref={inputTileNameRef}
@@ -226,9 +222,11 @@ function App() {
               Click to add new tile
             </button>
           </div>
-          <button onClick={clearTiles}>Delete all tiles</button>
+          <button onClick={() => setITiles([])}>Delete all tiles</button>
         </header>
-        {iTiers.length > 0 && (
+        {iTiles.length === 0 ? (
+          <div className="no-tiles">No tiles</div>
+        ) : (
           <div className="tiles">
             {iTiles.map((iTile) => (
               <Tile
@@ -242,7 +240,6 @@ function App() {
             ))}
           </div>
         )}
-        {iTiles.length === 0 && <div className="no-tiles">No tiles</div>}
       </ul>
     </div>
   );

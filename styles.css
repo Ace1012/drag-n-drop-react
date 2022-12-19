@@ -48,6 +48,8 @@ li {
 label {
   display: flex;
   align-items: center;
+  color: lightgrey;
+  font-size: 1.5em;
   gap: 1em;
 }
 
