@@ -59,13 +59,16 @@ const Tile = ({
       : null;
 
     if (tier) {
-      if (!dragTileTier) {
-        setITiles((prevTiles) =>
-        prevTiles.filter((prevTile) => prevTile.id !== dragTile.id)
-        );
-      } else {
+      //If this tile is in a tier
+      if (dragTileTier) {
+        //If tile being dragged is in a tier
         setITiers((prevTiers) =>
           prevTiers.map((prevTier) => {
+            if (prevTier.title === dragTileTier.title) {
+              prevTier.children = prevTier.children.filter(
+                (prevTile) => prevTile.id !== dragTile.id
+              );
+            }
             if (prevTier.title === tier.title) {
               prevTier.children = prevTier.children.filter(
                 (prevTile) => prevTile.id !== dragTile.id
@@ -86,6 +89,10 @@ const Tile = ({
             }
             return prevTier;
           })
+        );
+      } else {
+        setITiles((prevTiles) =>
+          prevTiles.filter((prevTile) => prevTile.id !== dragTile.id)
         );
       }
     } else {

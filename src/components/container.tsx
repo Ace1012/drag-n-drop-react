@@ -184,9 +184,8 @@ const Container = ({
       el.classList.add("cog-clicked");
       setIsCustomizationMenuOpen(true);
       const time = () => {
-        const t = setTimeout(() => {
+        setTimeout(() => {
           customMenuRef.current?.classList.add("custom-menu-animation");
-          clearTimeout(t);
         });
       };
       time();
