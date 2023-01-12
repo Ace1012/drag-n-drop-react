@@ -4,8 +4,8 @@ import { ITier, ITile } from "../App";
 interface TileProps {
   tile: ITile;
   tier?: ITier;
-  tiersRef: React.RefObject<HTMLUListElement>;
-  tilesRef: React.RefObject<HTMLUListElement>;
+  tiersRef: React.RefObject<HTMLDivElement>;
+  tilesRef: React.RefObject<HTMLDivElement>;
   setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
   setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
 }
@@ -91,6 +91,26 @@ const Tile = ({
           })
         );
       } else {
+        setITiers((prevTiers) => {
+          prevTiers.forEach((prevTier) => {
+            if (prevTier.title === tier.title)
+              if (delta <= 0) {
+                prevTier.children.splice(
+                  prevTier.children.indexOf(tile),
+                  0,
+                  dragTile
+                );
+              } else {
+                prevTier.children.splice(
+                  prevTier.children.indexOf(tile) + 1,
+                  0,
+                  dragTile
+                );
+              }
+            return prevTier;
+          });
+          return prevTiers;
+        });
         setITiles((prevTiles) =>
           prevTiles.filter((prevTile) => prevTile.id !== dragTile.id)
         );

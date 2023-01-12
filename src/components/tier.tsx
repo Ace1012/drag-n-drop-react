@@ -6,8 +6,8 @@ import Tile from "./tile";
 
 interface ContainerProps {
   tier: ITier;
-  tiersRef: React.RefObject<HTMLUListElement>;
-  tilesRef: React.RefObject<HTMLUListElement>;
+  tiersRef: React.RefObject<HTMLDivElement>;
+  tilesRef: React.RefObject<HTMLDivElement>;
   setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
   setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
   triggerSnackbar: (message: string) => void;
@@ -31,10 +31,16 @@ const Container = ({
 
   const [isDraggingThisTier, setIsDraggingThisTier] = useState(false);
   const [isCustomizationMenuOpen, setIsCustomizationMenuOpen] = useState(false);
+  const [tierBackgroundColor, setTierBackgroundColor] = useState("#212121");
+  const colors = ["#212121", "red", "blue", "green", "yellow"];
 
   function dragStart(e: React.DragEvent) {
     tierContainerRef.current!.style.opacity = "0.5";
     e.dataTransfer.setData("tier", JSON.stringify(tier));
+  }
+
+  function dragEnd() {
+    tierContainerRef.current!.style.opacity = "";
   }
 
   function dragOver(e: React.DragEvent) {
@@ -62,11 +68,8 @@ const Container = ({
     }
   }
 
-  function dragEnd() {
-    tierContainerRef.current!.style.opacity = "";
-  }
-
   function dragLeave(e: React.DragEvent) {
+    console.log("Leaving");
     tierContainerRef.current!.style.border = "";
     tierContainerRef.current!.style.boxShadow = "";
     tierContainerHeaderRef.current!.style.boxShadow = "";
@@ -180,15 +183,13 @@ const Container = ({
     if (isCustomizationMenuOpen) {
       el.classList.remove("cog-clicked");
       setIsCustomizationMenuOpen(false);
+      customMenuRef.current!.style.scale = "";
+      customMenuRef.current!.style.opacity = "";
     } else {
       el.classList.add("cog-clicked");
       setIsCustomizationMenuOpen(true);
-      const time = () => {
-        setTimeout(() => {
-          customMenuRef.current?.classList.add("custom-menu-animation");
-        });
-      };
-      time();
+      customMenuRef.current!.style.scale = "1";
+      customMenuRef.current!.style.opacity = "1";
     }
   }
 
@@ -199,6 +200,13 @@ const Container = ({
     if (e.type === "mouseleave") {
       setIsDraggingThisTier(false);
     }
+  }
+
+  function changeBackgroundColor(e: React.ChangeEvent<HTMLSelectElement>) {
+    setTierBackgroundColor(e.target.value);
+    setIsCustomizationMenuOpen(false);
+    customMenuRef.current!.style.scale = "";
+    customMenuRef.current!.style.opacity = "";
   }
 
   useEffect(() => {
@@ -236,6 +244,9 @@ const Container = ({
       onDragEnd={dragEnd}
       onDragOver={(e) => dragOver(e)}
       onDragLeave={(e) => dragLeave(e)}
+      style={{
+        backgroundColor: tierBackgroundColor,
+      }}
       className="tier-container"
     >
       <header
@@ -264,13 +275,7 @@ const Container = ({
             />
           ))
         ) : (
-          <span
-            style={{
-              width: "max-content",
-            }}
-          >
-            Add items here
-          </span>
+          <span>Add items here</span>
         )}
       </ul>
       <footer ref={tierContainerFooterRef}>
@@ -281,11 +286,38 @@ const Container = ({
           size={30}
           color="rgb(130, 130, 130)"
         />
-        {isCustomizationMenuOpen && (
-          <div ref={customMenuRef} className={`customization-menu`}>
-            Customization tools to be added
-          </div>
-        )}
+        <div ref={customMenuRef} className="customization-menu">
+          {/* Customization tools to be added */}
+          <select
+            className="colors"
+            defaultValue={3}
+            onChange={(e) => changeBackgroundColor(e)}
+          >
+            {colors.map((color) => (
+              <option
+                className="color"
+                value={color}
+                key={color}
+                style={
+                  color === "#212121"
+                    ? {
+                        content: "Default",
+                        border: "none",
+                        borderRadius: "0",
+                        backgroundColor: "darkgrey",
+                        width: "100%",
+                        gridColumn: "1/-1",
+                      }
+                    : {
+                        backgroundColor: color,
+                      }
+                }
+              >
+                {color === "#212121" ? "Default" : color}
+              </option>
+            ))}
+          </select>
+        </div>
         <FaTrash
           className="footer-icon"
           onClick={() => removeTier(tier.title)}

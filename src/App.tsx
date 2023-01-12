@@ -1,7 +1,11 @@
 import { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
-import Container from "./components/container";
+import Container from "./components/tier";
 import Tile from "./components/tile";
 import UseSnackbar from "./components/useSnackbar";
+
+// export interface StylePresets{
+
+// }
 
 export interface ITier {
   title: string;
@@ -18,8 +22,8 @@ function App() {
   const inputTierRef = useRef<HTMLInputElement>(null);
   const inputTileUrlRef = useRef<HTMLInputElement>(null);
   const inputTileNameRef = useRef<HTMLInputElement>(null);
-  const tiersRef = useRef<HTMLUListElement>(null);
-  const tilesRef = useRef<HTMLUListElement>(null);
+  const tiersRef = useRef<HTMLDivElement>(null);
+  const tilesRef = useRef<HTMLDivElement>(null);
   const tileCounter = useRef<number>(0);
   const tierCounter = useRef<number>(0);
 
@@ -60,10 +64,21 @@ function App() {
     }
     if (
       iTiles.some(
-        (tile) => tile.name === tileName || tile.imageUrl === tileImageUrl
+        (tile) =>
+          tile.name === tileName || tile.imageUrl === `url(${tileImageUrl})`
+      ) ||
+      iTiers.some((tier) =>
+        tier.children.some(
+          (tile) =>
+            tile.name === tileName || tile.imageUrl === `url(${tileImageUrl})`
+        )
       )
     ) {
       alert("Tile already exists");
+      inputTileUrlRef.current!.value = "";
+      inputTileNameRef.current!.value = "";
+      setIsNameDisabled(false);
+      setIsUrlDisabled(false);
       return;
     }
 
@@ -158,7 +173,7 @@ function App() {
           setIsSnackbarOpen={setIsSnackbarOpen}
         />
       )} */}
-      <ul className="tier-section" ref={tiersRef}>
+      <div className="tier-section" ref={tiersRef}>
         <header>
           <div className="add-tier">
             <label>
@@ -179,7 +194,7 @@ function App() {
         {iTiers.length === 0 ? (
           <div className="no-tiers">No tiers</div>
         ) : (
-          <div className="tiers">
+          <ul className="tiers">
             {iTiers.map((iTier) => (
               <Container
                 key={`container${tierCounter.current++}`}
@@ -192,10 +207,10 @@ function App() {
                 children={iTier.children}
               />
             ))}
-          </div>
+          </ul>
         )}
-      </ul>
-      <ul className="tile-section" ref={tilesRef}>
+      </div>
+      <div className="tile-section" ref={tilesRef}>
         <header>
           <div className="add-tile">
             <label>
@@ -227,7 +242,7 @@ function App() {
         {iTiles.length === 0 ? (
           <div className="no-tiles">No tiles</div>
         ) : (
-          <div className="tiles">
+          <ul className="tiles">
             {iTiles.map((iTile) => (
               <Tile
                 key={`${iTile.id}`}
@@ -238,9 +253,9 @@ function App() {
                 setITiles={setITiles}
               />
             ))}
-          </div>
+          </ul>
         )}
-      </ul>
+      </div>
     </div>
   );
 }

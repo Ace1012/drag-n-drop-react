@@ -10,20 +10,22 @@
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
-
-/* Track */
 ::-webkit-scrollbar-track {
   background: black;
   border-radius: 8px;
 }
-
-/* Handle */
 ::-webkit-scrollbar-thumb {
   background: white;
   border: 1px solid black;
   border-radius: 8px;
+}
+::-webkit-scrollbar-track:hover {
+  background: white;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: grey;
 }
 
 button {
@@ -132,12 +134,28 @@ option.change-color-option:before {
   position: relative;
   display: flex;
   justify-content: space-between;
-  background-color: #212121;
   border: 1px solid black;
   border-radius: inherit;
   box-shadow: 8px 8px 10px black;
-  min-height: 100px;
+  min-height: fit-content;
   transition: all ease-in-out 150ms;
+}
+
+.tier-container .content {
+  width: 100%;
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  grid-template-columns: repeat(auto-fit, 25%);
+  font-size: 2rem;
+  min-height: 100px;
+  color: lightgrey;
+  transition: all ease-in-out 100ms;
+}
+
+.has-children {
+  justify-content: stretch !important;
+  align-items: stretch !important;
 }
 
 .tier-container header,
@@ -188,7 +206,7 @@ option.change-color-option:before {
 .tier-container footer {
   position: relative;
   border-radius: 0 10px 10px 0;
-  justify-content: space-around;
+  justify-content: space-around
 }
 
 .footer-icon {
@@ -200,49 +218,38 @@ option.change-color-option:before {
   color: white !important;
 }
 
+.cog-clicked {
+  transform: rotate(90deg);
+}
+
 .customization-menu {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  row-gap: 5px;
+  justify-items: center;
   align-items: center;
   position: absolute;
-  opacity: 0;
   background-color: rgb(255, 255, 255);
   color: black;
   border-radius: 10px;
   border: 1px solid black;
   padding: 1em;
+  opacity: 0;
   scale: 0;
-  transition: all ease-in-out 150ms 100ms;
-}
-
-.cog-clicked {
-  transform: rotate(90deg);
-}
-
-.custom-menu-animation {
-  scale: 1;
-  /* top: 25%;
-  bottom: 25%; */
-  left: -10em;
   width: 150px;
   height: 120px;
-  opacity: 1;
+  left: -10em;
+  transition: all ease-in-out 150ms 100ms;
 }
-
-.tier-container .content {
-  width: 100%;
-  display: grid;
-  justify-content: center;
-  align-items: center;
-  grid-template-columns: repeat(auto-fit, 25%);
-  font-size: 2rem;
-  color: lightgrey;
-  transition: all ease-in-out 100ms;
+.color{
+  cursor: pointer;
+  border: 1px solid black;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
 }
-
-.has-children {
-  justify-content: stretch !important;
-  align-items: stretch !important;
+.color:hover{
+  filter: opacity(0.3);
 }
 
 .no-tiers,
