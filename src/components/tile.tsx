@@ -59,9 +59,8 @@ const Tile = ({
       : null;
 
     if (tier) {
-      //If this tile is in a tier
       if (dragTileTier) {
-        //If tile being dragged is in a tier
+        //Executed when a tile within a tier is dragged on top of another tile within a tier.
         setITiers((prevTiers) =>
           prevTiers.map((prevTier) => {
             if (prevTier.title === dragTileTier.title) {
@@ -91,6 +90,7 @@ const Tile = ({
           })
         );
       } else {
+        //Executed when a tier-less tile is dragged on top of another tile within another tier.
         setITiers((prevTiers) => {
           prevTiers.forEach((prevTier) => {
             if (prevTier.title === tier.title)
@@ -116,15 +116,44 @@ const Tile = ({
         );
       }
     } else {
-      setITiles((prevTiles) => {
-        prevTiles = prevTiles.filter((prevTile) => prevTile.id !== dragTile.id);
-        if (delta <= 0) {
-          prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
-        } else {
-          prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
-        }
-        return prevTiles;
-      });
+      if (dragTileTier) {
+        //Executed when a tile within a tier is dragged on top of a tier-less tile.
+        setITiers((prevTiers) => {
+          prevTiers.forEach((prevTier) => {
+            if (prevTier.title === dragTileTier.title) {
+              prevTier.children = prevTier.children.filter(
+                (prevTile) => prevTile.id !== dragTile.id
+              );
+            }
+            return prevTier;
+          });
+          return prevTiers;
+        });
+        setITiles((prevTiles) => {
+          prevTiles = prevTiles.filter(
+            (prevTile) => prevTile.id !== dragTile.id
+          );
+          if (delta <= 0) {
+            prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
+          } else {
+            prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
+          }
+          return prevTiles;
+        });
+      } else {
+        //Executed when a tier-less tile is dragged on top of another tier-less tile.
+        setITiles((prevTiles) => {
+          prevTiles = prevTiles.filter(
+            (prevTile) => prevTile.id !== dragTile.id
+          );
+          if (delta <= 0) {
+            prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
+          } else {
+            prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
+          }
+          return prevTiles;
+        });
+      }
     }
   }
 

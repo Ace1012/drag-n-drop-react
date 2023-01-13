@@ -1,8 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ITier, ITile } from "../App";
+import { ITier, ITile, TierStylePresets } from "../App";
 import { FaTrash } from "react-icons/fa";
 import { AiFillSetting } from "react-icons/ai";
 import Tile from "./tile";
+
+interface FormSubmitValue {
+  color: string;
+  newTitle?: string;
+}
 
 interface ContainerProps {
   tier: ITier;
@@ -27,7 +32,16 @@ const Container = ({
   const tierContainerHeaderRef = useRef<HTMLLIElement>(null);
   const tierContainerFooterRef = useRef<HTMLLIElement>(null);
   const contentAreaRef = useRef<HTMLUListElement>(null);
-  const customMenuRef = useRef<HTMLDivElement>(null);
+  const customMenuRef = useRef<HTMLFormElement>(null);
+  const newTitleInputRef = useRef<HTMLInputElement>(null);
+  const tierBGC = useRef<TierStylePresets>(
+    localStorage.getItem(tier.title)
+      ? (JSON.parse(localStorage.getItem(tier.title)!) as TierStylePresets)
+      : null
+  );
+  const formSubmitValue = useRef<FormSubmitValue>({
+    color: "",
+  });
 
   const [isDraggingThisTier, setIsDraggingThisTier] = useState(false);
   const [isCustomizationMenuOpen, setIsCustomizationMenuOpen] = useState(false);
@@ -139,6 +153,7 @@ const Container = ({
   }
 
   function removeTier(title: string) {
+    localStorage.removeItem(tier.title);
     setITiles((prevTiles) => [...prevTiles, ...tier.children]);
     setITiers((prevTiers) => prevTiers.filter((tier) => tier.title !== title));
   }
@@ -196,14 +211,67 @@ const Container = ({
   function handleDraggable(e: React.MouseEvent<HTMLElement, MouseEvent>) {
     if (e.type === "mouseenter") {
       setIsDraggingThisTier(true);
+      tierContainerRef.current!.style.border = `5px solid ${
+        tierBGC.current
+          ? tierBGC.current.backgroundColor
+          : tierBackgroundColor !== "#212121"
+          ? tierBackgroundColor
+          : "cyan"
+      }`;
     }
     if (e.type === "mouseleave") {
       setIsDraggingThisTier(false);
+      tierContainerRef.current!.style.border = "";
     }
   }
 
   function changeBackgroundColor(e: React.ChangeEvent<HTMLSelectElement>) {
-    setTierBackgroundColor(e.target.value);
+    formSubmitValue.current.color = e.target.value;
+    if (e.target.value !== "#212121") {
+      localStorage.setItem(
+        `${tier.title}`,
+        JSON.stringify({ backgroundColor: e.target.value })
+      );
+    } else {
+      localStorage.removeItem(tier.title);
+    }
+  }
+  function handleNewTitle(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.value !== "") {
+      formSubmitValue.current.newTitle = e.target.value;
+    } else {
+      formSubmitValue.current = {
+        color: "",
+      };
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (formSubmitValue.current.color !== "") {
+      console.log("New color");
+      setTierBackgroundColor(formSubmitValue.current.color);
+    }
+    if (formSubmitValue.current.newTitle) {
+      console.log("New name");
+      setITiers((prevTiers) => {
+        prevTiers.forEach((prevTier) => {
+          if (prevTier.title === tier.title) {
+            prevTier.title = formSubmitValue.current.newTitle!;
+          }
+          return prevTier;
+        });
+        return prevTiers;
+      });
+    }
+    closeMenu();
+  }
+
+  function closeMenu() {
+    formSubmitValue.current = {
+      color: "",
+    };
+    newTitleInputRef.current!.value = ""
     setIsCustomizationMenuOpen(false);
     customMenuRef.current!.style.scale = "";
     customMenuRef.current!.style.opacity = "";
@@ -237,6 +305,7 @@ const Container = ({
 
   return (
     <li
+      className="tier-container"
       ref={tierContainerRef}
       draggable={isDraggingThisTier}
       onDrop={onDrop}
@@ -245,9 +314,10 @@ const Container = ({
       onDragOver={(e) => dragOver(e)}
       onDragLeave={(e) => dragLeave(e)}
       style={{
-        backgroundColor: tierBackgroundColor,
+        backgroundColor: tierBGC.current
+          ? tierBGC.current?.backgroundColor
+          : tierBackgroundColor,
       }}
-      className="tier-container"
     >
       <header
         ref={tierContainerHeaderRef}
@@ -255,7 +325,7 @@ const Container = ({
         onMouseLeave={(e) => handleDraggable(e)}
         onDragLeave={(e) => e.stopPropagation()}
       >
-        {tier.title}
+        <span>{tier.title}</span>
       </header>
       <ul
         ref={contentAreaRef}
@@ -286,11 +356,13 @@ const Container = ({
           size={30}
           color="rgb(130, 130, 130)"
         />
-        <div ref={customMenuRef} className="customization-menu">
-          {/* Customization tools to be added */}
+        <form
+          ref={customMenuRef}
+          onSubmit={handleSubmit}
+          className="customization-menu"
+        >
           <select
             className="colors"
-            defaultValue={3}
             onChange={(e) => changeBackgroundColor(e)}
           >
             {colors.map((color) => (
@@ -313,11 +385,21 @@ const Container = ({
                       }
                 }
               >
-                {color === "#212121" ? "Default" : color}
+                {color === "#212121" ? "Default Color" : color}
               </option>
             ))}
           </select>
-        </div>
+          <input
+            type="text"
+            ref={newTitleInputRef}
+            onChange={handleNewTitle}
+            placeholder="Enter new title"
+          />
+          <div>
+            <button onClick={() => closeMenu()}>Cancel</button>
+            <button type="submit">Save</button>
+          </div>
+        </form>
         <FaTrash
           className="footer-icon"
           onClick={() => removeTier(tier.title)}

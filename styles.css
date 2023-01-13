@@ -65,15 +65,18 @@ input {
   color: rgb(255, 255, 255, 0.5);
 }
 
-option {
-  appearance: none;
+select{
+  width: 100%;
+  border: none;
+  box-shadow: inset 0 0 3px black;
+  border-radius: 8px 8px 0 0;
+  padding: 3px;
+  text-transform: capitalize;
 }
 
-option.change-color-option:before {
-  content: "";
-  border-radius: 50%;
-  width: fit-content;
-  height: fit-content;
+option {
+  /* appearance: none; */
+  text-transform: capitalize;
 }
 
 .app {
@@ -153,6 +156,11 @@ option.change-color-option:before {
   transition: all ease-in-out 100ms;
 }
 
+.tier-container .content span {
+  color: white;
+  mix-blend-mode: difference;
+}
+
 .has-children {
   justify-content: stretch !important;
   align-items: stretch !important;
@@ -168,8 +176,7 @@ option.change-color-option:before {
   margin: auto 0;
   background-color: #4b4b4b;
   color: white;
-  min-height: 100%;
-  height: fit-content;
+  height: 100%;
   padding: 0.5em;
   transition: all ease-in-out 150ms;
 }
@@ -196,17 +203,17 @@ option.change-color-option:before {
   width: 7em;
   word-break: break-word;
   text-transform: capitalize;
-  border-radius: 10px 0 0 10px;
+  border-radius: 8px 0 0 8px;
 }
 
-.tier-container:has(:is(header:hover)) {
+/* .tier-container:has(header:hover) {
   border: 1px solid cyan;
-}
+} */
 
 .tier-container footer {
   position: relative;
-  border-radius: 0 10px 10px 0;
-  justify-content: space-around
+  border-radius: 0 8px 8px 0;
+  justify-content: space-around;
 }
 
 .footer-icon {
@@ -224,10 +231,9 @@ option.change-color-option:before {
 
 .customization-menu {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   row-gap: 5px;
   justify-items: center;
-  align-items: center;
   position: absolute;
   background-color: rgb(255, 255, 255);
   color: black;
@@ -241,15 +247,27 @@ option.change-color-option:before {
   left: -10em;
   transition: all ease-in-out 150ms 100ms;
 }
-.color{
+.color {
   cursor: pointer;
   border: 1px solid black;
   border-radius: 50%;
   width: 30px;
   height: 30px;
+  mix-blend-mode: difference;
 }
-.color:hover{
+/* .color:hover {
   filter: opacity(0.3);
+} */
+.customization-menu input{
+  border-radius: 0 0 8px 8px;
+  width: 100%;
+}
+.customization-menu button{
+  opacity: 0.7;
+}
+.customization-menu button:hover{
+  opacity: 1;
+  border: 1px solid black;
 }
 
 .no-tiers,

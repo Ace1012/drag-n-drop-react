@@ -3,9 +3,9 @@ import Container from "./components/tier";
 import Tile from "./components/tile";
 import UseSnackbar from "./components/useSnackbar";
 
-// export interface StylePresets{
-
-// }
+export interface TierStylePresets{
+  backgroundColor: string
+}
 
 export interface ITier {
   title: string;
