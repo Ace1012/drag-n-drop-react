@@ -192,7 +192,7 @@ option {
 }
 
 .drop-area-overlay {
-  background-color: rgb(0, 0, 0, 0.5);
+  background-color: rgb(0, 0, 0, 0.9);
   position: fixed;
   top: 0;
   right: 0;
@@ -207,22 +207,32 @@ option {
 }
 
 .drop-area {
-  border: 3px solid white;
+  border: 3px dotted rgb(255, 255, 255, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
+  font-size: 2em;
   color: white;
   height: 50vh;
-  aspect-ratio: 1/1;
+  width: 50vw;
 }
 
 .close-drag-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
   cursor: pointer;
   position: fixed;
   top: 1em;
   right: 1em;
-  font-size: 2em;
+  font-size: 4em;
   color: white;
+  transition: all ease-in-out 150ms;
+}
+
+.close-drag-area:hover {
+  scale: 1.5;
 }
 
 .tier-container .content {
@@ -288,10 +298,6 @@ option {
   text-transform: capitalize;
   border-radius: 8px 0 0 8px;
 }
-
-/* .tier-container:has(header:hover) {
-  border: 1px solid cyan;
-} */
 
 .tier-container footer {
   position: relative;

@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { FaDownload, FaSave } from "react-icons/fa";
-import DropArea from "./components/dropArea";
+import DropArea, { colorPreset, Presets } from "./components/dropArea";
 import Container, { FormSubmitValue } from "./components/tier";
 import Tile from "./components/tile";
 import UseSnackbar from "./components/useSnackbar";
@@ -195,35 +195,36 @@ function App() {
       } else {
         return presets;
       }
-    }, {}) as { [k: string]: Pick<React.CSSProperties, "backgroundColor"> };
+    }, {}) as colorPreset;
   }
 
   function downloadList() {
     const colorPresets = compilePresets();
-    console.log(colorPresets);
-    const file = new Blob([JSON.stringify(colorPresets)], {
+    const presets = {
+      colors: { ...colorPresets },
+      tiers: [...iTiers],
+      tiles: [...iTiles],
+    };
+    const file = new File([JSON.stringify(presets)], "Tierlist.dnd", {
       type: "text/plain",
     });
-    console.log(File);
     const link = document.createElement("a");
     link.href = URL.createObjectURL(file);
     link.download = "TierList.dnd";
     link.click();
     URL.revokeObjectURL(link.href);
-    loadPresets(file);
   }
 
-  async function loadPresets(blob?: Blob, file?: File) {
-    // let file = e.dataTransfer.files[0]
-    let presets;
-    if (blob) {
-      presets = JSON.parse(await blob.text());
-    } else if (file) {
-    }
-    // const fr = new FileReader()
-    // const presets = fr.readAsText(file)
-    // const presets = JSON.parse(fr.readAsText(file)!) as FormSubmitValue;
-    console.log("Loaded presets are: ", presets);
+  function loadPresets(presets: Presets) {
+    setITiers(presets.tiers)
+    setITiles(presets.tiles)
+    const keys = Object.keys(presets.colors);
+    // console.log("Tiers: ", presets.tiers);
+    // console.log("Tiles: ", presets.tiles);
+    keys.forEach((title) => {
+      // console.log("Title: ", title, "\nColor", presets.colors[title]);
+      localStorage.setItem(title, JSON.stringify(presets.colors[title]))
+    });
   }
 
   return (
@@ -257,7 +258,7 @@ function App() {
               >
                 &times;
               </span>
-              <DropArea setDragFile={setDragFile} />
+              <DropArea loadPresets={loadPresets} setDragFile={setDragFile} />
             </dialog>
           )}
           <FaDownload

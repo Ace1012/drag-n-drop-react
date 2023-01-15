@@ -233,10 +233,10 @@ const Container = ({
           : "cyan"
       }`;
       tierContainerRef.current!.style.color = tierBGC.current
-        ? tierBGC.current.backgroundColor
-        : tierBackgroundColor !== "#212121"
-        ? tierBackgroundColor
-        : "";
+      ? tierBGC.current.backgroundColor
+      : tierBackgroundColor !== "#212121"
+      ? tierBackgroundColor
+      : "";
     }
     if (e.type === "mouseleave") {
       setIsDraggingThisTier(false);
