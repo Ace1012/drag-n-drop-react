@@ -4,7 +4,7 @@ import { FaTrash } from "react-icons/fa";
 import { AiFillSetting } from "react-icons/ai";
 import Tile from "./tile";
 
-interface FormSubmitValue {
+export interface FormSubmitValue {
   color: string;
   newTitle?: string;
 }
@@ -193,6 +193,20 @@ const Container = ({
     }
   }
 
+  function closeMenu() {
+    formSubmitValue.current = {
+      color: "",
+    };
+    newTitleInputRef.current!.value = "";
+    setIsCustomizationMenuOpen(false);
+    customMenuRef.current!.style.scale = "";
+    customMenuRef.current!.style.opacity = "";
+  }
+
+  function changeBackgroundColor(e: React.ChangeEvent<HTMLSelectElement>) {
+    formSubmitValue.current.color = e.target.value;
+  }
+
   function handleCog(e: React.MouseEvent<SVGElement, MouseEvent>) {
     const el = e.currentTarget;
     if (isCustomizationMenuOpen) {
@@ -218,6 +232,11 @@ const Container = ({
           ? tierBackgroundColor
           : "cyan"
       }`;
+      tierContainerRef.current!.style.color = tierBGC.current
+        ? tierBGC.current.backgroundColor
+        : tierBackgroundColor !== "#212121"
+        ? tierBackgroundColor
+        : "";
     }
     if (e.type === "mouseleave") {
       setIsDraggingThisTier(false);
@@ -225,17 +244,6 @@ const Container = ({
     }
   }
 
-  function changeBackgroundColor(e: React.ChangeEvent<HTMLSelectElement>) {
-    formSubmitValue.current.color = e.target.value;
-    if (e.target.value !== "#212121") {
-      localStorage.setItem(
-        `${tier.title}`,
-        JSON.stringify({ backgroundColor: e.target.value })
-      );
-    } else {
-      localStorage.removeItem(tier.title);
-    }
-  }
   function handleNewTitle(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.value !== "") {
       formSubmitValue.current.newTitle = e.target.value;
@@ -244,16 +252,39 @@ const Container = ({
         color: "",
       };
     }
+    console.log(formSubmitValue.current);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    let colorPresets = localStorage.getItem(tier.title)
+      ? (JSON.parse(localStorage.getItem(tier.title)!) as FormSubmitValue)
+      : null;
+    if (
+      formSubmitValue.current.color !== "" &&
+      formSubmitValue.current.color !== "#212121"
+    ) {
+      localStorage.setItem(
+        `${tier.title}`,
+        JSON.stringify({ backgroundColor: formSubmitValue.current.color })
+      );
+    } else if(!colorPresets){
+      localStorage.removeItem(tier.title);
+    }
     if (formSubmitValue.current.color !== "") {
       console.log("New color");
       setTierBackgroundColor(formSubmitValue.current.color);
     }
     if (formSubmitValue.current.newTitle) {
       console.log("New name");
+      let newTitle = formSubmitValue.current.newTitle;
+      console.log("New title: ", newTitle);
+      if (colorPresets) {
+        console.log("Renaming color presets");
+        localStorage.removeItem(tier.title);
+        console.log("Setting: ", newTitle, colorPresets);
+        localStorage.setItem(newTitle, JSON.stringify(colorPresets));
+      }
       setITiers((prevTiers) => {
         prevTiers.forEach((prevTier) => {
           if (prevTier.title === tier.title) {
@@ -265,16 +296,6 @@ const Container = ({
       });
     }
     closeMenu();
-  }
-
-  function closeMenu() {
-    formSubmitValue.current = {
-      color: "",
-    };
-    newTitleInputRef.current!.value = ""
-    setIsCustomizationMenuOpen(false);
-    customMenuRef.current!.style.scale = "";
-    customMenuRef.current!.style.opacity = "";
   }
 
   useEffect(() => {
@@ -361,10 +382,7 @@ const Container = ({
           onSubmit={handleSubmit}
           className="customization-menu"
         >
-          <select
-            className="colors"
-            onChange={(e) => changeBackgroundColor(e)}
-          >
+          <select className="colors" onChange={(e) => changeBackgroundColor(e)}>
             {colors.map((color) => (
               <option
                 className="color"
@@ -396,7 +414,9 @@ const Container = ({
             placeholder="Enter new title"
           />
           <div>
-            <button onClick={() => closeMenu()}>Cancel</button>
+            <button type="button" onClick={() => closeMenu()}>
+              Cancel
+            </button>
             <button type="submit">Save</button>
           </div>
         </form>

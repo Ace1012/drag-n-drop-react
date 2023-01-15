@@ -1,10 +1,18 @@
-import { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
-import Container from "./components/tier";
+import React, {
+  ChangeEvent,
+  KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { FaDownload, FaSave } from "react-icons/fa";
+import DropArea from "./components/dropArea";
+import Container, { FormSubmitValue } from "./components/tier";
 import Tile from "./components/tile";
 import UseSnackbar from "./components/useSnackbar";
 
-export interface TierStylePresets{
-  backgroundColor: string
+export interface TierStylePresets {
+  backgroundColor: string;
 }
 
 export interface ITier {
@@ -26,6 +34,7 @@ function App() {
   const tilesRef = useRef<HTMLDivElement>(null);
   const tileCounter = useRef<number>(0);
   const tierCounter = useRef<number>(0);
+  const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
 
   const [iTiers, setITiers] = useState<ITier[]>([
     { title: "default", children: [] },
@@ -34,7 +43,8 @@ function App() {
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [isNameDisabled, setIsNameDisabled] = useState(false);
   const [isUrlDisabled, setIsUrlDisabled] = useState(false);
-  const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
+  const [svgTitle, setSvgTitle] = useState("Click to save current tier list");
+  const [dragFile, setDragFile] = useState(false);
 
   function handleTierInput() {
     const tierTitle = inputTierRef.current?.value;
@@ -165,6 +175,57 @@ function App() {
     });
   }
 
+  function handleSVGTitle(e: React.MouseEvent<SVGElement, MouseEvent>) {
+    if (e.type === "mouseenter") {
+      setTimeout(() => {
+        setSvgTitle("");
+      }, 2000);
+    } else if (e.type === "mouseleave") {
+      setTimeout(() => {
+        setSvgTitle("Click to save current tier list");
+      }, 500);
+    }
+  }
+
+  function compilePresets() {
+    return iTiers.reduce((presets, tier) => {
+      let storageValue = localStorage.getItem(tier.title);
+      if (storageValue) {
+        return { ...presets, [tier.title]: JSON.parse(storageValue) };
+      } else {
+        return presets;
+      }
+    }, {}) as { [k: string]: Pick<React.CSSProperties, "backgroundColor"> };
+  }
+
+  function downloadList() {
+    const colorPresets = compilePresets();
+    console.log(colorPresets);
+    const file = new Blob([JSON.stringify(colorPresets)], {
+      type: "text/plain",
+    });
+    console.log(File);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(file);
+    link.download = "TierList.dnd";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    loadPresets(file);
+  }
+
+  async function loadPresets(blob?: Blob, file?: File) {
+    // let file = e.dataTransfer.files[0]
+    let presets;
+    if (blob) {
+      presets = JSON.parse(await blob.text());
+    } else if (file) {
+    }
+    // const fr = new FileReader()
+    // const presets = fr.readAsText(file)
+    // const presets = JSON.parse(fr.readAsText(file)!) as FormSubmitValue;
+    console.log("Loaded presets are: ", presets);
+  }
+
   return (
     <div className="app">
       {/* {isSnackbarOpen && (
@@ -173,6 +234,41 @@ function App() {
           setIsSnackbarOpen={setIsSnackbarOpen}
         />
       )} */}
+      <div className="presets-management">
+        <FaSave
+          className="save-presets"
+          size={"4em"}
+          title={svgTitle}
+          onMouseEnter={(e) => handleSVGTitle(e)}
+          onMouseLeave={(e) => handleSVGTitle(e)}
+          onClick={() => downloadList()}
+        />
+        <div className="download-wrapper">
+          {dragFile && (
+            <dialog
+              className="drop-area-overlay"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => e.preventDefault()}
+              open={dragFile}
+            >
+              <span
+                className="close-drag-area"
+                onClick={() => setDragFile(false)}
+              >
+                &times;
+              </span>
+              <DropArea setDragFile={setDragFile} />
+            </dialog>
+          )}
+          <FaDownload
+            className="load-presets"
+            size={"4em"}
+            onMouseEnter={(e) => handleSVGTitle(e)}
+            onMouseLeave={(e) => handleSVGTitle(e)}
+            onClick={() => setDragFile((p) => !p)}
+          />
+        </div>
+      </div>
       <div className="tier-section" ref={tiersRef}>
         <header>
           <div className="add-tier">

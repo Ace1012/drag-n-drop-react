@@ -7,6 +7,8 @@
 
 :root {
   background-color: #242424;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {
@@ -65,7 +67,7 @@ input {
   color: rgb(255, 255, 255, 0.5);
 }
 
-select{
+select {
   width: 100%;
   border: none;
   box-shadow: inset 0 0 3px black;
@@ -127,9 +129,9 @@ option {
   flex-direction: column;
   gap: 1em;
   border-radius: inherit;
-  padding: 1em;
+  padding: 16px;
   width: 100%;
-  max-height: 500px;
+  max-height: 480px;
   overflow: auto;
 }
 
@@ -141,7 +143,86 @@ option {
   border-radius: inherit;
   box-shadow: 8px 8px 10px black;
   min-height: fit-content;
+  max-height: 210px;
+  text-align: center;
   transition: all ease-in-out 150ms;
+}
+
+.presets-management {
+  position: absolute;
+  top: 2.5em;
+  right: 3em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1em;
+  width: 4em;
+}
+
+.save-presets,
+.load-presets {
+  cursor: pointer;
+  color: white;
+  background-color: #212121;
+  padding: 1em;
+  border-radius: 50%;
+  border: 1px solid white;
+  transition: all ease-in-out 150ms;
+}
+
+.save-presets:hover {
+  color: #212121;
+  translate: 0 -5px;
+  box-shadow: none;
+  border: 1px solid black;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.save-presets:active {
+  box-shadow: inset 8px 8px 10px black;
+}
+
+.download-wrapper{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.drop-area-overlay {
+  background-color: rgb(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+}
+
+.drop-area {
+  border: 3px solid white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  height: 50vh;
+  aspect-ratio: 1/1;
+}
+
+.close-drag-area {
+  cursor: pointer;
+  position: fixed;
+  top: 1em;
+  right: 1em;
+  font-size: 2em;
+  color: white;
 }
 
 .tier-container .content {
@@ -152,6 +233,7 @@ option {
   grid-template-columns: repeat(auto-fit, 25%);
   font-size: 2rem;
   min-height: 100px;
+  max-height: 100px;
   color: lightgrey;
   transition: all ease-in-out 100ms;
 }
@@ -161,9 +243,10 @@ option {
   mix-blend-mode: difference;
 }
 
-.has-children {
-  justify-content: stretch !important;
-  align-items: stretch !important;
+.tier-container .has-children {
+  justify-content: stretch;
+  align-items: stretch;
+  max-height: fit-content;
 }
 
 .tier-container header,
@@ -258,14 +341,14 @@ option {
 /* .color:hover {
   filter: opacity(0.3);
 } */
-.customization-menu input{
+.customization-menu input {
   border-radius: 0 0 8px 8px;
   width: 100%;
 }
-.customization-menu button{
+.customization-menu button {
   opacity: 0.7;
 }
-.customization-menu button:hover{
+.customization-menu button:hover {
   opacity: 1;
   border: 1px solid black;
 }
@@ -312,7 +395,7 @@ option {
   background-position-y: center;
   background-position-x: center;
   cursor: grab;
-  border: 2px solid black;
+  border: 1px solid black;
   background-size: cover;
   width: 100%;
   height: 100px;
