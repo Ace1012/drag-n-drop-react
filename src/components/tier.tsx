@@ -1,12 +1,21 @@
-import React, { useEffect, useRef, useState } from "react";
-import { ITier, ITile, TierStylePresets } from "../App";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ITier, ITile } from "../App";
 import { FaTrash } from "react-icons/fa";
 import { AiFillSetting } from "react-icons/ai";
 import Tile from "./tile";
+import CustomizationMenu, {
+  HandleCustomizationMenuProps,
+} from "./customizationMenu";
+import { CirclePicker } from "react-color";
+import { ntc } from "../NameThatColor/NameThatColor";
 
 export interface FormSubmitValue {
   color: string;
   newTitle?: string;
+}
+
+export interface StorageColorPresets {
+  backgroundColor: string;
 }
 
 interface ContainerProps {
@@ -32,21 +41,20 @@ const Container = ({
   const tierContainerHeaderRef = useRef<HTMLLIElement>(null);
   const tierContainerFooterRef = useRef<HTMLLIElement>(null);
   const contentAreaRef = useRef<HTMLUListElement>(null);
-  const customMenuRef = useRef<HTMLFormElement>(null);
-  const newTitleInputRef = useRef<HTMLInputElement>(null);
-  const tierBGC = useRef<TierStylePresets>(
-    localStorage.getItem(tier.title)
-      ? (JSON.parse(localStorage.getItem(tier.title)!) as TierStylePresets)
-      : null
-  );
+  const customMenuRef = useRef<HandleCustomizationMenuProps>(null);
   const formSubmitValue = useRef<FormSubmitValue>({
     color: "",
   });
 
   const [isDraggingThisTier, setIsDraggingThisTier] = useState(false);
   const [isCustomizationMenuOpen, setIsCustomizationMenuOpen] = useState(false);
-  const [tierBackgroundColor, setTierBackgroundColor] = useState("#212121");
-  const colors = ["#212121", "red", "blue", "green", "yellow"];
+  const [openColorPicker, setOpenColorPicker] = useState(false);
+  const [tierBackgroundColor, setTierBackgroundColor] = useState(
+    localStorage.getItem(tier.title)
+      ? (JSON.parse(localStorage.getItem(tier.title)!) as StorageColorPresets)
+          .backgroundColor
+      : "#212121"
+  );
 
   function dragStart(e: React.DragEvent) {
     tierContainerRef.current!.style.opacity = "0.5";
@@ -64,18 +72,35 @@ const Container = ({
     const delta = e.clientY - tierMiddle;
     const isDraggingTier = e.dataTransfer.types.includes("tier");
     if (!isDraggingThisTier && isDraggingTier) {
+      console.log(tierBackgroundColor);
       if (delta <= 0) {
+        console.log("Before");
         tierContainerRef.current!.dataset.positon = "before";
-        tierContainerHeaderRef.current!.style.boxShadow =
-          "inset 10px 15px 10px cyan";
-        tierContainerFooterRef.current!.style.boxShadow =
-          "inset -10px 15px 10px cyan";
+        tierContainerRef.current!.style.boxShadow = `inset -10px 15px 10px ${
+          tierBackgroundColor === "#212121"
+            ? "cyan"
+            : `${tierBackgroundColor}55`
+        }`;
+        tierContainerHeaderRef.current!.style.boxShadow = `inset 10px 15px 10px ${
+          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+        }`;
+        tierContainerFooterRef.current!.style.boxShadow = `inset 10px 15px 10px ${
+          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+        }`;
       } else {
+        console.log("After");
         tierContainerRef.current!.dataset.positon = "after";
-        tierContainerHeaderRef.current!.style.boxShadow =
-          "inset 10px -15px 10px cyan";
-        tierContainerFooterRef.current!.style.boxShadow =
-          "inset -10px -15px 10px cyan";
+        tierContainerRef.current!.style.boxShadow = `inset 10px -15px 10px ${
+          tierBackgroundColor === "#212121"
+            ? "cyan"
+            : `${tierBackgroundColor}55`
+        }`;
+        tierContainerHeaderRef.current!.style.boxShadow = `inset 10px -15px 10px ${
+          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+        }`;
+        tierContainerFooterRef.current!.style.boxShadow = `inset 10px -15px 10px ${
+          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+        }`;
       }
     } else if (!isDraggingTier) {
       tierContainerRef.current!.style.border = "1px solid yellow";
@@ -86,7 +111,10 @@ const Container = ({
     console.log("Leaving");
     tierContainerRef.current!.style.border = "";
     tierContainerRef.current!.style.boxShadow = "";
-    tierContainerHeaderRef.current!.style.boxShadow = "";
+    // tierContainerHeaderRef.current!.style.boxShadow =
+    //   tierBackgroundColor === "#212121"
+    //     ? ""
+    //     : `inset 0 0 3em ${tierBackgroundColor}`;
     tierContainerFooterRef.current!.style.boxShadow = "";
     contentAreaRef.current!.style.boxShadow = "";
     delete tierContainerRef.current!.dataset.positon;
@@ -197,14 +225,15 @@ const Container = ({
     formSubmitValue.current = {
       color: "",
     };
-    newTitleInputRef.current!.value = "";
+
     setIsCustomizationMenuOpen(false);
-    customMenuRef.current!.style.scale = "";
-    customMenuRef.current!.style.opacity = "";
+    customMenuRef.current?.clearInputValue();
+    customMenuRef.current?.editMenuScale("");
+    customMenuRef.current?.editMenuOpacity("");
   }
 
-  function changeBackgroundColor(e: React.ChangeEvent<HTMLSelectElement>) {
-    formSubmitValue.current.color = e.target.value;
+  function changeBackgroundColor(newColor: string) {
+    formSubmitValue.current.color = newColor;
   }
 
   function handleCog(e: React.MouseEvent<SVGElement, MouseEvent>) {
@@ -212,35 +241,33 @@ const Container = ({
     if (isCustomizationMenuOpen) {
       el.classList.remove("cog-clicked");
       setIsCustomizationMenuOpen(false);
-      customMenuRef.current!.style.scale = "";
-      customMenuRef.current!.style.opacity = "";
+      customMenuRef.current?.editMenuScale("");
+      customMenuRef.current?.editMenuOpacity("");
     } else {
       el.classList.add("cog-clicked");
       setIsCustomizationMenuOpen(true);
-      customMenuRef.current!.style.scale = "1";
-      customMenuRef.current!.style.opacity = "1";
+      customMenuRef.current?.editMenuScale("1");
+      customMenuRef.current?.editMenuOpacity("1");
     }
   }
 
   function handleDraggable(e: React.MouseEvent<HTMLElement, MouseEvent>) {
     if (e.type === "mouseenter") {
       setIsDraggingThisTier(true);
-      tierContainerRef.current!.style.border = `5px solid ${
-        tierBGC.current
-          ? tierBGC.current.backgroundColor
-          : tierBackgroundColor !== "#212121"
-          ? tierBackgroundColor
-          : "cyan"
-      }`;
-      tierContainerRef.current!.style.color = tierBGC.current
-      ? tierBGC.current.backgroundColor
-      : tierBackgroundColor !== "#212121"
-      ? tierBackgroundColor
-      : "";
+      tierContainerRef.current!.style.border = `5px solid ${tierBackgroundColor}`;
+      tierContainerHeaderRef.current!.style.boxShadow = "none";
     }
     if (e.type === "mouseleave") {
       setIsDraggingThisTier(false);
       tierContainerRef.current!.style.border = "";
+      tierContainerRef.current!.style.boxShadow = "";
+      tierContainerHeaderRef.current!.style.backgroundColor = "";
+      tierContainerFooterRef.current!.style.backgroundColor = "";
+      tierContainerHeaderRef.current!.style.border = "";
+      tierContainerHeaderRef.current!.style.boxShadow =
+        tierBackgroundColor === "#212121"
+          ? ""
+          : `inset 0 0 0.1em 0.3em ${tierBackgroundColor}`;
     }
   }
 
@@ -268,21 +295,17 @@ const Container = ({
         `${tier.title}`,
         JSON.stringify({ backgroundColor: formSubmitValue.current.color })
       );
-    } else if(!colorPresets){
+    } else if (!colorPresets) {
       localStorage.removeItem(tier.title);
     }
     if (formSubmitValue.current.color !== "") {
-      console.log("New color");
-      setTierBackgroundColor(formSubmitValue.current.color);
+      let newColor = formSubmitValue.current.color;
+      setTierBackgroundColor(newColor);
     }
     if (formSubmitValue.current.newTitle) {
-      console.log("New name");
       let newTitle = formSubmitValue.current.newTitle;
-      console.log("New title: ", newTitle);
       if (colorPresets) {
-        console.log("Renaming color presets");
         localStorage.removeItem(tier.title);
-        console.log("Setting: ", newTitle, colorPresets);
         localStorage.setItem(newTitle, JSON.stringify(colorPresets));
       }
       setITiers((prevTiers) => {
@@ -298,31 +321,73 @@ const Container = ({
     closeMenu();
   }
 
+  function animateHeader() {
+    // const keyframes: Keyframe[] = [
+    //   {
+    //     boxShadow: `inset 0 0 0 ${tierBackgroundColor}`,
+    //   },
+    //   {
+    //     boxShadow: `inset 0 0 0.2em 0.2em ${tierBackgroundColor}`,
+    //   },
+    //   {
+    //     boxShadow: `inset 0 0 0 ${tierBackgroundColor}`,
+    //   },
+    //   {
+    //     boxShadow: `0 0 0 ${tierBackgroundColor}`,
+    //   },
+    //   {
+    //     boxShadow: `0 0 0.2em 0.2em ${tierBackgroundColor}`,
+    //   },
+    //   {
+    //     boxShadow: `0 0 0 ${tierBackgroundColor}`,
+    //   },
+    //   {
+    //     boxShadow: `inset 0 0 0 ${tierBackgroundColor}`,
+    //   },
+    // {
+    //   boxShadow: `inset -10px -10px 1em  ${tierBackgroundColor}`,
+    // },
+    // {
+    //   boxShadow: `inset 0 0 1em ${tierBackgroundColor}`,
+    // },
+    // {
+    //   boxShadow: `inset 10px 10px 1em ${tierBackgroundColor}`,
+    // },
+    // ];
+    // tierContainerHeaderRef.current!.animate(keyframes, {
+    //   duration: 2000,
+    //   iterations: 3,
+    // });
+  }
+
   useEffect(() => {
     window.onbeforeunload = function (e) {
       localStorage.clear();
     };
     if (localStorage.getItem(`page-loaded`) === null) {
       localStorage.setItem(`page-loaded`, "true");
-      setTimeout(() => {
-        if (tierContainerHeaderRef.current) {
-          tierContainerHeaderRef.current.style.transition =
-            "all ease-in-out 150ms, box-shadow ease-in-out 1s";
-          tierContainerHeaderRef.current.style.boxShadow = "0 0 10px 3px cyan";
-        }
-      }, 1000);
-      setTimeout(() => {
-        if (tierContainerHeaderRef.current) {
-          tierContainerHeaderRef.current.style.boxShadow = "";
-        }
-      }, 2000);
-      setTimeout(() => {
-        if (tierContainerHeaderRef.current) {
-          tierContainerHeaderRef.current.style.transition = "";
-        }
-      }, 3000);
+      let keyframes: Keyframe[] = [
+        {
+          boxShadow: "none",
+        },
+        {
+          boxShadow: "0 0 10px 3px cyan",
+        },
+        {
+          boxShadow: "none",
+        },
+      ];
+      tierContainerHeaderRef.current?.animate(keyframes, {
+        duration: 2000,
+        iterations: 1,
+        easing: "ease-in-out",
+      });
     }
   }, []);
+
+  function touchMove(e: React.TouchEvent<HTMLLIElement>) {
+    console.log(e.type);
+  }
 
   return (
     <li
@@ -334,16 +399,26 @@ const Container = ({
       onDragEnd={dragEnd}
       onDragOver={(e) => dragOver(e)}
       onDragLeave={(e) => dragLeave(e)}
+      // onTouchMove={touchMove}
       style={{
-        backgroundColor: tierBGC.current
-          ? tierBGC.current?.backgroundColor
-          : tierBackgroundColor,
+        backgroundColor: `${tierBackgroundColor}`,
+        // boxShadow: `8px 8px 10px ${tierBackgroundColor}`
+        // backgroundColor: "#212121",
       }}
     >
       <header
         ref={tierContainerHeaderRef}
+        style={{
+          boxShadow:
+            tierBackgroundColor === "#212121"
+              ? ""
+              : `inset 0 0 0.1em 0.3em ${tierBackgroundColor}`,
+        }}
         onMouseEnter={(e) => handleDraggable(e)}
         onMouseLeave={(e) => handleDraggable(e)}
+        // onPointerDown={(e) => console.log("pointerdown")}
+        onPointerDown={(e) => handleDraggable(e)}
+        onPointerUp={(e) => handleDraggable(e)}
         onDragLeave={(e) => e.stopPropagation()}
       >
         <span>{tier.title}</span>
@@ -369,6 +444,29 @@ const Container = ({
           <span>Add items here</span>
         )}
       </ul>
+      {/* {openColorPicker && (
+        <div className="colors">
+          <ChromePicker
+            onChange={(newColor) => {
+              setOpenColorPicker(false);
+              changeBackgroundColor(newColor.hex);
+              console.log(formSubmitValue.current.color);
+            }}
+          />
+        </div>
+      )} */}
+      {openColorPicker && (
+        <div className="colors" onClick={() => setOpenColorPicker(false)}>
+          <CirclePicker
+            className="color-options"
+            onChange={(newColor) => {
+              setOpenColorPicker(false);
+              changeBackgroundColor(newColor.hex);
+              console.log(formSubmitValue.current.color);
+            }}
+          />
+        </div>
+      )}
       <footer ref={tierContainerFooterRef}>
         <AiFillSetting
           className="footer-icon"
@@ -377,49 +475,17 @@ const Container = ({
           size={30}
           color="rgb(130, 130, 130)"
         />
-        <form
+        {/* <div className="customization-overlay"> */}
+        <CustomizationMenu
+          tierBackgroundColor={tierBackgroundColor}
+          openColorPicker={openColorPicker}
+          setOpenColorPicker={setOpenColorPicker}
+          closeMenu={closeMenu}
+          handleNewTitle={handleNewTitle}
+          handleSubmit={handleSubmit}
           ref={customMenuRef}
-          onSubmit={handleSubmit}
-          className="customization-menu"
-        >
-          <select className="colors" onChange={(e) => changeBackgroundColor(e)}>
-            {colors.map((color) => (
-              <option
-                className="color"
-                value={color}
-                key={color}
-                style={
-                  color === "#212121"
-                    ? {
-                        content: "Default",
-                        border: "none",
-                        borderRadius: "0",
-                        backgroundColor: "darkgrey",
-                        width: "100%",
-                        gridColumn: "1/-1",
-                      }
-                    : {
-                        backgroundColor: color,
-                      }
-                }
-              >
-                {color === "#212121" ? "Default Color" : color}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            ref={newTitleInputRef}
-            onChange={handleNewTitle}
-            placeholder="Enter new title"
-          />
-          <div>
-            <button type="button" onClick={() => closeMenu()}>
-              Cancel
-            </button>
-            <button type="submit">Save</button>
-          </div>
-        </form>
+        />
+        {/* </div> */}
         <FaTrash
           className="footer-icon"
           onClick={() => removeTier(tier.title)}

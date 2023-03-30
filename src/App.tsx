@@ -1,18 +1,21 @@
 import React, {
   ChangeEvent,
   KeyboardEvent,
+  useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
 import { FaDownload, FaSave } from "react-icons/fa";
-import DropArea, { colorPreset, Presets } from "./components/dropArea";
+import DropArea, { Presets } from "./components/dropArea";
 import Container, { FormSubmitValue } from "./components/tier";
 import Tile from "./components/tile";
+import { v4 as uuid } from "uuid";
 import UseSnackbar from "./components/useSnackbar";
+import { ntc } from "./NameThatColor/NameThatColor";
 
-export interface TierStylePresets {
-  backgroundColor: string;
+export interface ColorPreset {
+  [key: string]: { backgroundColor: string };
 }
 
 export interface ITier {
@@ -27,13 +30,12 @@ export interface ITile {
 }
 
 function App() {
+  const appRef = useRef<HTMLDivElement>(null);
   const inputTierRef = useRef<HTMLInputElement>(null);
   const inputTileUrlRef = useRef<HTMLInputElement>(null);
   const inputTileNameRef = useRef<HTMLInputElement>(null);
   const tiersRef = useRef<HTMLDivElement>(null);
   const tilesRef = useRef<HTMLDivElement>(null);
-  const tileCounter = useRef<number>(0);
-  const tierCounter = useRef<number>(0);
   const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
 
   const [iTiers, setITiers] = useState<ITier[]>([
@@ -45,6 +47,7 @@ function App() {
   const [isUrlDisabled, setIsUrlDisabled] = useState(false);
   const [svgTitle, setSvgTitle] = useState("Click to save current tier list");
   const [dragFile, setDragFile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   function handleTierInput() {
     const tierTitle = inputTierRef.current?.value;
@@ -97,12 +100,12 @@ function App() {
     };
     if (isNameDisabled) {
       newTile = {
-        id: `tile${tileCounter.current++}`,
+        id: `tile${uuid()}`,
         imageUrl: `url(${tileImageUrl})`,
       };
     } else if (isUrlDisabled) {
       newTile = {
-        id: `tile${tileCounter.current++}`,
+        id: `tile${uuid()}`,
         name: `${tileName}`,
       };
     }
@@ -195,7 +198,7 @@ function App() {
       } else {
         return presets;
       }
-    }, {}) as colorPreset;
+    }, {}) as ColorPreset;
   }
 
   function downloadList() {
@@ -205,7 +208,7 @@ function App() {
       tiers: [...iTiers],
       tiles: [...iTiles],
     };
-    const file = new File([JSON.stringify(presets)], "Tierlist.dnd", {
+    const file = new File([btoa(JSON.stringify(presets))], "Tierlist.dnd", {
       type: "text/plain",
     });
     const link = document.createElement("a");
@@ -216,36 +219,117 @@ function App() {
   }
 
   function loadPresets(presets: Presets) {
-    setITiers(presets.tiers)
-    setITiles(presets.tiles)
+    console.log("Presets are", presets);
+    setITiers(presets.tiers);
+    setITiles(presets.tiles);
+    localStorage.clear();
+    localStorage.setItem("page-loaded", "true");
     const keys = Object.keys(presets.colors);
-    // console.log("Tiers: ", presets.tiers);
-    // console.log("Tiles: ", presets.tiles);
     keys.forEach((title) => {
-      // console.log("Title: ", title, "\nColor", presets.colors[title]);
-      localStorage.setItem(title, JSON.stringify(presets.colors[title]))
+      localStorage.setItem(title, JSON.stringify(presets.colors[title]));
     });
   }
 
+  // //Create classes for each color for placeholder - prototype feature test
+  // const createPlaceholderColorClasses = useCallback((): any[] => {
+  //   let names: any[] = ntc.names;
+  //   type Cured = { id: string; name: string };
+  //   let curatedNames: Cured[] = names.reduce((list, name) => {
+  //     let colorId = name[0];
+  //     let colorName = name[1].replace(/\s+/g, "");
+  //     return [...list, { id: colorId, name: colorName }];
+  //   }, []);
+  //   let style = document.createElement("style");
+  //   style.id = "input-placeholder-color-classes";
+  //   curatedNames.forEach((name) => {
+  //     style.textContent =
+  //       style.textContent +
+  //       `\r\n.customization-menu input.${
+  //         name.name
+  //       }::-webkit-input-placeholder { color: #${
+  //         name.id === "323232" ? "white" : name.id
+  //       };}`;
+  //   });
+  //   document.head.appendChild(style);
+  //   return curatedNames;
+  // }, [ntc]);
+
+  // useEffect(() => {
+  //   createPlaceholderColorClasses();
+  // }, []);
+
+  function pointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    appRef.current!.style.touchAction = "none";
+
+    const dot = document.createElement("div");
+    dot.id = `${e.pointerId}`;
+    dot.classList.add("dot");
+    dot.style.width = `${e.width + 10}px`;
+    dot.style.height = `${e.width + 10}px`;
+    dot.style.top = `${e.pageY}px`;
+    dot.style.left = `${e.pageX}px`;
+    document.body.append(dot);
+
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }
+
+  function pointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const dot = document.getElementById(`${e.pointerId}`);
+    if (!dot) return;
+    dot.style.top = `${e.pageY}px`;
+    dot.style.left = `${e.pageX}px`;
+  }
+
+  function pointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    appRef.current!.style.touchAction = "";
+    const dot = document.getElementById(`${e.pointerId}`);
+    if (!dot) return;
+    dot.remove();
+  }
+
+  useEffect(() => {
+    const mobileRegex = /iphone|android|ipad/i;
+    if (mobileRegex.test(navigator.userAgent)) {
+      setIsMobile(true);
+      console.log("On mobile");
+    }
+  }, []);
+
   return (
-    <div className="app">
+    <div className="app" ref={appRef}>
       {/* {isSnackbarOpen && (
         <UseSnackbar
           message={snackbarMessage.current}
           setIsSnackbarOpen={setIsSnackbarOpen}
         />
       )} */}
+      {isMobile && (
+        <div className="mobile-warning-overlay">
+          <div className="mobile-warning">
+            <span>
+              Currently working on mobile functionality. Please use a computer
+              for now.
+            </span>
+            {/* <button className="warning-closebtn">&times;</button> */}
+            <button
+              className="warning-closebtn"
+              onClick={() => setIsMobile(false)}
+            >
+              x
+            </button>
+          </div>
+        </div>
+      )}
       <div className="presets-management">
         <FaSave
           className="save-presets"
-          size={"4em"}
           title={svgTitle}
           onMouseEnter={(e) => handleSVGTitle(e)}
           onMouseLeave={(e) => handleSVGTitle(e)}
           onClick={() => downloadList()}
         />
-        <div className="download-wrapper">
-          {dragFile && (
+        {dragFile && (
+          <div className="download-wrapper">
             <dialog
               className="drop-area-overlay"
               onDragOver={(e) => e.preventDefault()}
@@ -260,33 +344,35 @@ function App() {
               </span>
               <DropArea loadPresets={loadPresets} setDragFile={setDragFile} />
             </dialog>
-          )}
-          <FaDownload
-            className="load-presets"
-            size={"4em"}
-            onMouseEnter={(e) => handleSVGTitle(e)}
-            onMouseLeave={(e) => handleSVGTitle(e)}
-            onClick={() => setDragFile((p) => !p)}
-          />
-        </div>
+          </div>
+        )}
+        <FaDownload
+          className="load-presets"
+          title="Click to load presets"
+          onMouseEnter={(e) => handleSVGTitle(e)}
+          onMouseLeave={(e) => handleSVGTitle(e)}
+          onClick={() => setDragFile((prev) => !prev)}
+        />
       </div>
       <div className="tier-section" ref={tiersRef}>
         <header>
-          <div className="add-tier">
-            <label>
-              <span>Create tier: </span>
-              <input
-                type="text"
-                ref={inputTierRef}
-                placeholder="Enter tier name"
-                onKeyDown={(e) => onInputEnterPressed(e)}
-              />
-            </label>
+          {/* <div className="add-tier"> */}
+          <label>
+            {/* <span>Create tier: </span> */}
+            <input
+              type="text"
+              ref={inputTierRef}
+              placeholder="Enter tier name"
+              onKeyDown={(e) => onInputEnterPressed(e)}
+            />
+          </label>
+          {/* </div> */}
+          <div className="controls">
             <button onClick={() => handleTierInput()}>
               Click to add new tier
             </button>
+            <button onClick={clearTiers}>Delete all tiers</button>
           </div>
-          <button onClick={clearTiers}>Delete all tiers</button>
         </header>
         {iTiers.length === 0 ? (
           <div className="no-tiers">No tiers</div>
@@ -294,7 +380,7 @@ function App() {
           <ul className="tiers">
             {iTiers.map((iTier) => (
               <Container
-                key={`container${tierCounter.current++}`}
+                key={`container${uuid()}`}
                 tier={iTier}
                 tiersRef={tiersRef}
                 tilesRef={tilesRef}
@@ -309,32 +395,31 @@ function App() {
       </div>
       <div className="tile-section" ref={tilesRef}>
         <header>
-          <div className="add-tile">
-            <label>
-              <span>Create tile: </span>
-              <input
-                type="text"
-                ref={inputTileNameRef}
-                disabled={isNameDisabled}
-                placeholder="Enter tile name"
-                onChange={(e) => onInputChange(e)}
-                onKeyDown={(e) => onInputEnterPressed(e)}
-              />
-              OR
-              <input
-                type="text"
-                ref={inputTileUrlRef}
-                disabled={isUrlDisabled}
-                placeholder="Paste image url here"
-                onChange={(e) => onInputChange(e)}
-                onKeyDown={(e) => onInputEnterPressed(e)}
-              />
-            </label>
+          <label>
+            <input
+              type="text"
+              ref={inputTileNameRef}
+              disabled={isNameDisabled}
+              placeholder="Enter tile name"
+              onChange={(e) => onInputChange(e)}
+              onKeyDown={(e) => onInputEnterPressed(e)}
+            />
+            <span>OR</span>
+            <input
+              type="text"
+              ref={inputTileUrlRef}
+              disabled={isUrlDisabled}
+              placeholder="Paste image url here"
+              onChange={(e) => onInputChange(e)}
+              onKeyDown={(e) => onInputEnterPressed(e)}
+            />
+          </label>
+          <div className="controls">
             <button onClick={() => handleTileInput()}>
               Click to add new tile
             </button>
+            <button onClick={() => setITiles([])}>Delete all tiles</button>
           </div>
-          <button onClick={() => setITiles([])}>Delete all tiles</button>
         </header>
         {iTiles.length === 0 ? (
           <div className="no-tiles">No tiles</div>

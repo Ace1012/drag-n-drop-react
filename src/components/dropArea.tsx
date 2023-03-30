@@ -1,24 +1,32 @@
 import React, { useRef } from "react";
-import { ITier, ITile } from "../App";
-import { FormSubmitValue } from "./tier";
+import { ITier, ITile, ColorPreset } from "../App";
 
 interface DropAreaProps {
   setDragFile: React.Dispatch<React.SetStateAction<boolean>>;
   loadPresets(presets: Presets): void;
 }
 
-export interface colorPreset {
-   [key: string]: { backgroundColor: string } 
-}
-
 export interface Presets {
-  colors: colorPreset;
+  colors: ColorPreset;
   tiers: ITier[];
   tiles: ITile[];
 }
 
 const DropArea = ({ setDragFile, loadPresets }: DropAreaProps) => {
   const dropAreaRef = useRef<HTMLDivElement>(null);
+
+  function parsePresets(file: File) {
+    if (file.name.includes(".dnd")) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const presets = JSON.parse(atob(reader.result as string)) as Presets;
+        loadPresets(presets);
+      };
+      reader.readAsText(file);
+    } else {
+      alert("Wrong file type. Choose a .dnd file");
+    }
+  }
 
   function onDragOver(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -34,20 +42,13 @@ const DropArea = ({ setDragFile, loadPresets }: DropAreaProps) => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files[0];
-    if (file.name.includes(".dnd")) {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const presets = JSON.parse(reader.result as string) as Presets;
-        console.log("File content", presets);
-        loadPresets(presets);
-        // console.log("Colors: ", presets.colors);
-        // console.log("Tiers: ", presets.tiers);
-        // console.log("Tiles: ", presets.tiles);
-      };
-      reader.readAsText(file);
-    } else {
-      alert("Wrong file type. Choose a .dnd file");
-    }
+    parsePresets(file);
+    setDragFile(false);
+  }
+
+  async function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files![0];
+    parsePresets(file);
     setDragFile(false);
   }
 
@@ -60,6 +61,16 @@ const DropArea = ({ setDragFile, loadPresets }: DropAreaProps) => {
       onDrop={onDrop}
     >
       <span>Drop your file here to load the presets.</span>
+
+      <label>
+        <input
+          onChange={handleInput}
+          type="file"
+          id="file-input"
+          name="file-input"
+          accept=".dnd*"
+        />
+      </label>
     </div>
   );
 };
