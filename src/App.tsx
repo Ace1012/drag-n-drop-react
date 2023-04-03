@@ -319,14 +319,14 @@ function App() {
     }
   }
 
-  // useEffect(() => {
-  //   const mobileRegex = /iphone|android|ipad/i;
-  //   if (mobileRegex.test(navigator.userAgent)) {
-  //     setIsMobile(true);
-  //     setRevealMobileNav(true);
-  //     console.log("Mobile detected");
-  //   }
-  // }, []);
+  useEffect(() => {
+    const mobileRegex = /iphone|android|ipad/i;
+    if (mobileRegex.test(navigator.userAgent)) {
+      setIsMobile(true);
+      setRevealMobileNav(true);
+      console.log("Mobile detected");
+    }
+  }, []);
 
   return (
     <div
