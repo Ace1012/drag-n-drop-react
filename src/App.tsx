@@ -52,14 +52,14 @@ function App() {
     { title: "default", children: [] },
   ]);
   const [iTiles, setITiles] = useState<ITile[]>([
-    {
-      id: "tiledkajdbjahkdnaklsdasadada",
-      name: "A",
-    },
-    {
-      id: "tilealsbdalkjdblkajdnalkdjns",
-      name: "B",
-    },
+    // {
+    //   id: "tiledkajdbjahkdnaklsdasadada",
+    //   name: "A",
+    // },
+    // {
+    //   id: "tilealsbdalkjdblkajdnalkdjns",
+    //   name: "B",
+    // },
   ]);
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [isNameDisabled, setIsNameDisabled] = useState(false);
