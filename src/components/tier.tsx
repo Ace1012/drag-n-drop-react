@@ -25,6 +25,8 @@ interface ContainerProps {
   setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
   setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
   triggerSnackbar: (message: string) => void;
+  removeTileFromTier(tileId: string, parentTier: ITier): void;
+  removeTileFromTiles(tileId: string): void;
   children: ITile[];
 }
 
@@ -35,6 +37,8 @@ const Container = ({
   setITiers,
   setITiles,
   triggerSnackbar,
+  removeTileFromTier,
+  removeTileFromTiles,
   children,
 }: ContainerProps) => {
   const tierContainerRef = useRef<HTMLLIElement>(null);
@@ -385,10 +389,6 @@ const Container = ({
     }
   }, []);
 
-  function touchMove(e: React.TouchEvent<HTMLLIElement>) {
-    console.log(e.type);
-  }
-
   return (
     <li
       className="tier-container"
@@ -438,6 +438,8 @@ const Container = ({
               tilesRef={tilesRef}
               tier={tier}
               tile={iTile!}
+              removeTileFromTier={removeTileFromTier}
+              removeTileFromTiles={removeTileFromTiles}
             />
           ))
         ) : (

@@ -243,7 +243,7 @@ option {
   align-items: center;
   width: 100vw;
   height: 100vh;
-  z-index: 1000;
+  z-index: 100;
 }
 .drop-area {
   border: 3px dotted rgb(255, 255, 255, 0.5);
@@ -352,14 +352,14 @@ option {
   transform: rotate(90deg);
 }
 
-[data-positon]::before {
+/* [data-position]::before {
   content: "";
   position: absolute;
   border-radius: 8px;
   width: 100%;
-  z-index: 1000;
+  z-index: 100;
   transition: all ease-in-out 150ms;
-}
+} */
 
 .customization-overlay {
   position: fixed;
@@ -390,7 +390,7 @@ option {
   width: 150px;
   height: 120px;
   left: -10em;
-  z-index: 1000;
+  z-index: 100;
   transition: all ease-in-out 150ms 100ms;
 }
 .customization-menu input {
@@ -417,7 +417,7 @@ option {
   bottom: 0;
   left: 0;
   background-color: #212121cc;
-  z-index: 1001;
+  z-index: 101;
 }
 .color-options {
   display: grid !important;
@@ -483,13 +483,19 @@ option {
   /* touch-action: none; */
 }
 .tile-container > span {
-  pointer-events: none;
+  /* pointer-events: none; */
   /* touch-action: none; */
 }
 .tile-container > img {
   height: 100%;
   width: 100%;
 }
+[data-position = has-tier] {
+  touch-action: none;
+}
+/* [data-position=has-tier] > span {
+  touch-action: none;
+} */
 
 .tier-section > header,
 .tile-section > header {
@@ -573,11 +579,12 @@ option {
     width: 100%;
   }
   .tier-section {
-    height: 65%;
+    height: 60%;
     padding: 0.2rem;
   }
   .tile-section {
-    height: 35%;
+    height: 40%;
+    padding-bottom: 1rem;
   }
 
   .presets-management {
@@ -606,6 +613,10 @@ option {
   .tile-section > header > .controls {
     flex-direction: row;
   }
+  .tier-section > header > label {
+    align-self: flex-start;
+    margin-left: 20%;
+  }
   .tile-section > header > label {
     flex-direction: row;
     justify-content: center;
@@ -616,16 +627,34 @@ option {
   .tiles {
     display: flex;
     justify-content: flex-start;
+    align-items: flex-end;
     width: 100%;
-    overflow: auto;
+    min-height: 130px;
+    overflow-x: auto;
+    background-color: lightslategrey;
   }
   .tiles::-webkit-scrollbar {
     height: 0;
   }
+
+  .swipe-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bolder;
+    position: absolute;
+    top: 0;
+    left: 10vw;
+    right: 10vw;
+    height: 30px;
+  }
+
   .tile-container {
-    width: 5rem;
-    min-width: 5rem;
+    min-width: 100px;
+    max-width: 100px;
     font-size: 1rem;
+    height: 100px;
+    overflow: visible;
   }
   .tile-container > span {
     text-align: center;

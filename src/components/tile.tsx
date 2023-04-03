@@ -1,5 +1,6 @@
-import React, { useRef } from "react";
+import React, { useContext, useRef, useState } from "react";
 import { ITier, ITile } from "../App";
+import { TileMobileDragEvents } from "../contexts/drag-contexts";
 
 interface TileProps {
   tile: ITile;
@@ -8,9 +9,11 @@ interface TileProps {
   tilesRef: React.RefObject<HTMLDivElement>;
   setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
   setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
+  removeTileFromTier(tileId: string, parentTier: ITier): void;
+  removeTileFromTiles(tileId: string): void;
 }
 
-interface Offsets {
+export interface Offsets {
   top: number;
   left: number;
 }
@@ -22,9 +25,10 @@ const Tile = ({
   tilesRef,
   setITiers,
   setITiles,
+  removeTileFromTier,
+  removeTileFromTiles,
 }: TileProps) => {
   const tileRef = useRef<HTMLLIElement>(null);
-  const spanRef = useRef<HTMLSpanElement>(null);
   const customDataTransfer = useRef<DataTransfer>();
   const pointerPosition = useRef<Offsets>({
     left: 0,
@@ -32,7 +36,9 @@ const Tile = ({
   });
   const isTouchDragging = useRef(false);
 
-  function onDropPosition(clientX: number, clientY: number) {
+  const tilesContext = useContext(TileMobileDragEvents);
+
+  function isOutsideDropArea(clientX: number, clientY: number) {
     const pointerPositon = { y: clientY, x: clientX };
     const tierRect = tiersRef.current!.getBoundingClientRect();
     const isOutsideTiers =
@@ -50,21 +56,14 @@ const Tile = ({
     return { isOutsideTiers, isOutsideTiles };
   }
 
-  function removeTile(tileId: string, parentTier: ITier) {
-    const tempTile = parentTier.children.find((tile) => tile.id === tileId)!;
-    setITiers((prevTiers) =>
-      prevTiers.map((tier) => {
-        tier.children = tier.children.filter((tile) => tile.id !== tileId);
-        return tier;
-      })
-    );
-    setITiles((prevTiles) => [...prevTiles, tempTile]);
+  function calculateTileDelta(e: React.DragEvent | React.PointerEvent) {
+    const tileRect = tileRef.current!.getBoundingClientRect();
+    const tileMiddle = tileRect.left + tileRect.width / 2;
+    return e.clientX - tileMiddle;
   }
 
   function editTiles(e: React.DragEvent<HTMLElement>) {
-    const tileRect = tileRef.current!.getBoundingClientRect();
-    const tileMiddle = tileRect.left + tileRect.width / 2;
-    const delta = e.clientX - tileMiddle;
+    const delta = calculateTileDelta(e);
     const dragTile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
     const dragTileTier = e.dataTransfer.getData("tile-tier")
       ? (JSON.parse(e.dataTransfer.getData("tile-tier")) as ITier)
@@ -169,6 +168,30 @@ const Tile = ({
     }
   }
 
+  function handleTouchDrop(e: React.PointerEvent<HTMLElement>) {
+    const delta = calculateTileDelta(e);
+    const dragTile = tilesContext?.dragTile;
+    if (dragTile) {
+      if (delta <= 0) {
+        setITiles((prevTiles) => {
+          prevTiles = prevTiles.filter(
+            (prevTile) => prevTile.id !== dragTile.id
+          );
+          prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
+          return [...prevTiles];
+        });
+      } else {
+        setITiles((prevTiles) => {
+          prevTiles = prevTiles.filter(
+            (prevTile) => prevTile.id !== dragTile.id
+          );
+          prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
+          return [...prevTiles];
+        });
+      }
+    }
+  }
+
   function releasePointer(e: React.PointerEvent<HTMLLIElement>) {
     // console.log("Release");
     e.currentTarget.releasePointerCapture(e.pointerId);
@@ -178,104 +201,119 @@ const Tile = ({
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
+  function createShadow(e: React.PointerEvent<HTMLLIElement>) {
+    const rect = tileRef.current!.getBoundingClientRect();
+    const offsets: Offsets = {
+      top: e.clientY - rect.top,
+      left: e.clientX - rect.left,
+    };
+    pointerPosition.current = offsets;
+    const dragShadow = document.createElement("li");
+    dragShadow.innerHTML = tileRef.current!.innerHTML;
+    dragShadow.id = `tile-shadow${e.pointerId}`;
+    dragShadow.classList.add("tile-container");
+    dragShadow.style.position = "absolute";
+    // dragShadow.style.width = `${rect.width}px`;
+    // dragShadow.style.height = `${rect.height}px`;
+    dragShadow.style.minWidth = `50px`;
+    dragShadow.style.width = `50px`;
+    dragShadow.style.height = `50px`;
+    // dragShadow.style.padding = "1rem"
+    // dragShadow.style.top = `${e.pageY - offsets.top}px`;
+    // dragShadow.style.left = `${e.pageX - offsets.left}px`;
+    dragShadow.style.top = `${e.pageY - 50}px`;
+    dragShadow.style.left = `${e.pageX + 5}px`;
+    tile.imageUrl
+      ? (dragShadow.style.backgroundImage = tile.imageUrl)
+      : (dragShadow.style.backgroundColor = "lightgrey");
+    dragShadow.style.opacity = "0.5";
+    document.body.append(dragShadow);
+  }
+
+  function moveShadow(e: React.PointerEvent<HTMLLIElement>) {
+    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
+    if (dragShadow === null) return;
+    dragShadow.style.top = `${e.pageY - pointerPosition.current.top}px`;
+    dragShadow.style.left = `${e.pageX - pointerPosition.current.left}px`;
+  }
+
+  function removeShadow(e: React.PointerEvent<HTMLLIElement>) {
+    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
+    dragShadow?.remove();
+  }
+
   function pointerDown(e: React.PointerEvent<HTMLLIElement>) {
-    // e.preventDefault();
-    isTouchDragging.current = true;
-    // e.currentTarget.releasePointerCapture(e.pointerId);
-    // releasePointer(e);
-    // setPointer(e);
-    if (e.pointerType !== "mouse" && e.isPrimary) {
+    if (e.pointerType !== "mouse") {
+      // e.preventDefault();
       const rect = tileRef.current!.getBoundingClientRect();
       const offsets: Offsets = {
         top: e.clientY - rect.top,
         left: e.clientX - rect.left,
       };
       pointerPosition.current = offsets;
-
-      // const dragShadow = document.createElement("li");
-      // dragShadow.innerHTML = tileRef.current!.innerHTML;
-      // dragShadow.id = `tile-shadow${e.pointerId}`;
-      // dragShadow.classList.add("tile-container");
-      // dragShadow.style.position = "absolute";
-      // dragShadow.style.width = `${rect.width}px`;
-      // dragShadow.style.height = `${rect.height}px`;
-      // dragShadow.style.top = `${e.pageY - offsets.top}px`;
-      // dragShadow.style.left = `${e.pageX - offsets.left}px`;
-      // dragShadow.style.backgroundColor = "lightgrey";
-      // dragShadow.style.opacity = "0.5";
-      // document.body.append(dragShadow);
-
-      //Create dataTransfer Object
-      const dataTransfer = new DataTransfer();
-      dataTransfer.setData("tile", JSON.stringify(tile));
-      dataTransfer.setData("pointer-generated", "true");
-      tier && dataTransfer.setData("tile-tier", JSON.stringify(tier));
-
-      //Store dataTransfer Object
-      customDataTransfer.current = dataTransfer;
-
-      //Create and dispatch event
-      const drag = new DragEvent("dragstart", {
-        bubbles: true,
-        cancelable: false,
-        dataTransfer: dataTransfer,
-      });
-      e.currentTarget.dispatchEvent(drag);
+      isTouchDragging.current = true;
+      tilesContext?.setDragTile(tile);
+      // e.currentTarget.style.opacity = "0.5";
+      tileRef.current!.style.opacity = "0.5";
       releasePointer(e);
+      // console.log("Pointer down: ", tile.name);
+      createShadow(e);
     }
   }
 
   function pointerMove(e: React.PointerEvent<HTMLLIElement>) {
-    // if (e.pointerType !== "mouse") {
-    // e.preventDefault();
-    // console.log(`pointer moving`);
-    // const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`)!;
-    // dragShadow.style.top = `${e.pageY - pointerPosition.current.top}px`;
-    // dragShadow.style.left = `${e.pageX - pointerPosition.current.left}px`;
-    // }
+    if (e.pointerType !== "mouse") {
+      // console.log("Moving");
+      // e.preventDefault();
+      // console.log(offsets);
+      // console.log(e.pointerId);
+      // moveShadow(e);
+    }
+  }
+
+  function pointerOver(e: React.PointerEvent<HTMLLIElement>) {
+    if (e.pointerType === "mouse" && !isTouchDragging.current) return;
+    // dispatchDragStart(e);
+    console.log(
+      `Pointer over ${tile.name} Is Dragging ? ${isTouchDragging.current}`
+    );
+    if (!isTouchDragging.current) {
+      // setTimeout(() => {
+      //   if (!isTouchDragging.current) {
+      //     console.log(`Pointer over ${tile.name}`);
+      //   }
+      // }, 100);
+      // console.log(`Pointer over ${tile.name}`);
+    }
   }
 
   function pointerUp(e: React.PointerEvent<HTMLLIElement>) {
     // setPointer(e);
-    // const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
-    // dragShadow?.remove();
-    // console.log(tileRef.current);
-
-    const drag = new DragEvent("dragend", {
-      bubbles: true,
-      cancelable: false,
-      dataTransfer: customDataTransfer.current,
-      clientX: e.clientX,
-      clientY: e.clientY,
-    });
-    e.currentTarget.dispatchEvent(drag);
-
-    // const dragOver = new DragEvent("dragover", {
-    //   bubbles: true,
-    //   cancelable: false,
-    //   dataTransfer: customDataTransfer.current,
-    //   clientX: e.clientX,
-    //   clientY: e.clientY,
-    // });
-    // document.dispatchEvent(dragOver);
-
-    // const drop = new DragEvent("drop", {
-    //   bubbles: true,
-    //   cancelable: false,
-    //   dataTransfer: customDataTransfer.current,
-    //   clientX: e.clientX,
-    //   clientY: e.clientY,
-    // });
-    // document.dispatchEvent(drop);(isTouchDragging.current === false){}
+    // console.log("Pointer up");
+    // console.log(e.pointerId);
+    isTouchDragging.current = false;
+    removeShadow(e);
+    const { isOutsideTiers, isOutsideTiles } = isOutsideDropArea(
+      e.clientX,
+      e.clientY
+    );
+    if (tier && isOutsideTiers) {
+      console.log("Is outside tiers");
+      removeTileFromTier(tile.id, tier);
+    } else if (!tier && isOutsideTiles) {
+      removeTileFromTiles(tile.id);
+    }
 
     if (isTouchDragging.current) {
-      console.log("Origin");
-      isTouchDragging.current = false;
+      console.log("Pointer up -> Origin: ", tile.name);
     } else {
-      console.log("Destination");
+      console.log("Pointer up -> Destination: ", tile.name);
+      if (tilesContext?.dragTile) {
+        handleTouchDrop(e);
+        tilesContext?.setDragTile(null);
+        e.currentTarget.style.opacity = "";
+      }
     }
-    // console.log(tileRef.current);
-
     customDataTransfer.current = undefined;
   }
 
@@ -286,49 +324,7 @@ const Tile = ({
   }
 
   function pointerLeave(e: React.PointerEvent<HTMLLIElement>) {
-    if (isTouchDragging.current && e.pointerType !== "mouse") {
-      console.log(`Dispatching dragEnd ${tile.name}`);
-    }
-    const drag = new DragEvent("dragend", {
-      bubbles: true,
-      cancelable: false,
-      dataTransfer: customDataTransfer.current,
-      clientX: e.clientX,
-      clientY: e.clientY,
-    });
-    e.currentTarget.dispatchEvent(drag);
-  }
-
-  function dispatchDragStart(e: React.PointerEvent<HTMLLIElement>) {
-    console.log(`Dispatching dragStart ${tile.name}`);
-    //Create dataTransfer Object
-    const dataTransfer = new DataTransfer();
-    dataTransfer.setData("tile", JSON.stringify(tile));
-    dataTransfer.setData("pointer-generated", "true");
-    tier && dataTransfer.setData("tile-tier", JSON.stringify(tier));
-
-    //Store dataTransfer Object
-    customDataTransfer.current = dataTransfer;
-
-    //Create and dispatch event
-    const drag = new DragEvent("dragstart", {
-      bubbles: true,
-      cancelable: false,
-      dataTransfer: dataTransfer,
-    });
-    e.target.dispatchEvent(drag);
-  }
-
-  function pointerOver(e: React.PointerEvent<HTMLLIElement>) {
-    if (e.pointerType === "mouse") return;
-    dispatchDragStart(e);
-    if (!isTouchDragging.current) {
-      setTimeout(() => {
-        if (!isTouchDragging.current && e.pointerType !== "mouse") {
-          console.log(`Pointer over ${tile.name}`);
-        }
-      }, 100);
-    }
+    e.currentTarget.style.opacity = "";
   }
 
   function dragStart(e: React.DragEvent<HTMLLIElement>) {
@@ -336,16 +332,17 @@ const Tile = ({
     e.dataTransfer.setData("tile", JSON.stringify(tile));
     tier && e.dataTransfer.setData("tile-tier", JSON.stringify(tier));
     e.currentTarget.style.opacity = "0.5";
+    console.log(e.dataTransfer);
   }
 
   function onDragEnd(e: React.DragEvent<HTMLLIElement>) {
     e.stopPropagation();
-    const { isOutsideTiers, isOutsideTiles } = onDropPosition(
+    const { isOutsideTiers, isOutsideTiles } = isOutsideDropArea(
       e.clientX,
       e.clientY
     );
 
-    if (isOutsideTiers && tier) removeTile(tile.id, tier);
+    if (isOutsideTiers && tier) removeTileFromTier(tile.id, tier);
     else if (isOutsideTiles && isOutsideTiers && !tier) {
       setITiles((prevTiles) =>
         prevTiles.filter((prevTile) => prevTile.id !== tile.id)
@@ -374,6 +371,7 @@ const Tile = ({
       className="tile-container"
       ref={tileRef}
       data-dragging="false"
+      data-position={`${!tier ? "has-tier" : ""}`}
       onDragStart={(e) => dragStart(e)}
       onDragEnd={(e) => onDragEnd(e)}
       onDragOver={(e) => onDragOver(e)}
@@ -384,6 +382,10 @@ const Tile = ({
       onPointerOver={pointerOver}
       onPointerCancel={pointerCancel}
       onPointerLeave={pointerLeave}
+      onGotPointerCapture={() => console.log("Got pointer capture", tile.name)}
+      onLostPointerCapture={() =>
+        console.log("Lost pointer capture", tile.name)
+      }
       draggable
       style={{
         backgroundImage: tile.imageUrl ? tile.imageUrl : "",
@@ -391,7 +393,8 @@ const Tile = ({
         color: tile.name ? "black" : "",
       }}
     >
-      {tile.name && <span ref={spanRef}>{tile.name}</span>}
+      {/* {tile.name && <span ref={spanRef}>{tile.name}</span>} */}
+      {tile.name && tile.name}
     </li>
   );
 };

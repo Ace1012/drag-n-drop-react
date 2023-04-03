@@ -1,6 +1,7 @@
 import React, {
   ChangeEvent,
   KeyboardEvent,
+  createContext,
   useCallback,
   useEffect,
   useRef,
@@ -9,10 +10,14 @@ import React, {
 import { FaDownload, FaSave } from "react-icons/fa";
 import DropArea, { Presets } from "./components/dropArea";
 import Container, { FormSubmitValue } from "./components/tier";
-import Tile from "./components/tile";
+import Tile, { Offsets } from "./components/tile";
 import { v4 as uuid } from "uuid";
 import UseSnackbar from "./components/useSnackbar";
 import { ntc } from "./NameThatColor/NameThatColor";
+import {
+  TierMobileDragEvents,
+  TileMobileDragEvents,
+} from "./contexts/drag-contexts";
 
 export interface ColorPreset {
   [key: string]: { backgroundColor: string };
@@ -28,29 +33,46 @@ export interface ITile {
   name?: string;
   imageUrl?: string;
 }
+export type IDragTile = {
+  tier?: ITier;
+} & ITile;
 
 function App() {
   const appRef = useRef<HTMLDivElement>(null);
   const inputTierRef = useRef<HTMLInputElement>(null);
   const inputTileUrlRef = useRef<HTMLInputElement>(null);
   const inputTileNameRef = useRef<HTMLInputElement>(null);
-  const tiersRef = useRef<HTMLDivElement>(null);
-  const tilesRef = useRef<HTMLDivElement>(null);
+  const tierSectionRef = useRef<HTMLDivElement>(null);
+  const tileSectionRef = useRef<HTMLDivElement>(null);
+  const tiersRef = useRef<HTMLUListElement>(null);
+  const tilesRef = useRef<HTMLUListElement>(null);
   const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
 
   const [iTiers, setITiers] = useState<ITier[]>([
     { title: "default", children: [] },
   ]);
-  const [iTiles, setITiles] = useState<ITile[]>([]);
+  const [iTiles, setITiles] = useState<ITile[]>([
+    {
+      id: "tiledkajdbjahkdnaklsdasadada",
+      name: "A",
+    },
+    {
+      id: "tilealsbdalkjdblkajdnalkdjns",
+      name: "B",
+    },
+  ]);
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [isNameDisabled, setIsNameDisabled] = useState(false);
   const [isUrlDisabled, setIsUrlDisabled] = useState(false);
   const [svgTitle, setSvgTitle] = useState("Click to save current tier list");
-  const [dragFile, setDragFile] = useState(false);
+  const [revealDropArea, setRevealDropArea] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [revealMobileNav, setRevealMobileNav] = useState(false);
+  const [dragTier, setDragTier] = useState<ITier | null>(null);
+  const [dragTile, setDragTile] = useState<IDragTile | null>(null);
 
   function handleTierInput() {
-    const tierTitle = inputTierRef.current?.value;
+    const tierTitle = inputTierRef.current?.value.toLowerCase();
     if (tierTitle === "") {
       alert("Cannot add empty tier");
     } else if (
@@ -70,7 +92,7 @@ function App() {
 
   function handleTileInput() {
     const tileImageUrl = inputTileUrlRef.current?.value;
-    const tileName = inputTileNameRef.current?.value;
+    const tileName = inputTileNameRef.current?.value.toLowerCase();
     if (tileImageUrl === "" && tileName === "") {
       alert("Fill in the name or paste a url");
       return;
@@ -78,12 +100,14 @@ function App() {
     if (
       iTiles.some(
         (tile) =>
-          tile.name === tileName || tile.imageUrl === `url(${tileImageUrl})`
+          tile.name?.toLowerCase() === tileName ||
+          tile.imageUrl === `url(${tileImageUrl})`
       ) ||
       iTiers.some((tier) =>
         tier.children.some(
           (tile) =>
-            tile.name === tileName || tile.imageUrl === `url(${tileImageUrl})`
+            tile.name?.toLowerCase() === tileName ||
+            tile.imageUrl === `url(${tileImageUrl})`
         )
       )
     ) {
@@ -230,73 +254,98 @@ function App() {
     });
   }
 
-  // //Create classes for each color for placeholder - prototype feature test
-  // const createPlaceholderColorClasses = useCallback((): any[] => {
-  //   let names: any[] = ntc.names;
-  //   type Cured = { id: string; name: string };
-  //   let curatedNames: Cured[] = names.reduce((list, name) => {
-  //     let colorId = name[0];
-  //     let colorName = name[1].replace(/\s+/g, "");
-  //     return [...list, { id: colorId, name: colorName }];
-  //   }, []);
-  //   let style = document.createElement("style");
-  //   style.id = "input-placeholder-color-classes";
-  //   curatedNames.forEach((name) => {
-  //     style.textContent =
-  //       style.textContent +
-  //       `\r\n.customization-menu input.${
-  //         name.name
-  //       }::-webkit-input-placeholder { color: #${
-  //         name.id === "323232" ? "white" : name.id
-  //       };}`;
-  //   });
-  //   document.head.appendChild(style);
-  //   return curatedNames;
-  // }, [ntc]);
+  function positionShadow(e: React.PointerEvent) {
+    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
+    if (dragShadow === null) return;
+    // dragShadow.style.top = `${e.pageY - pointerPosition.top}px`;
+    // dragShadow.style.left = `${e.pageX - pointerPosition.left}px`;
+    dragShadow.style.top = `${e.pageY - 50}px`;
+    dragShadow.style.left = `${e.pageX + 10}px`;
+  }
+
+  function removeShadow(e: React.PointerEvent) {
+    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
+    dragShadow?.remove();
+  }
+
+  function isOutsideDropAreaMobile(clientX: number, clientY: number) {
+    const pointerPositon = { y: clientY, x: clientX };
+    const tierRect = tiersRef.current!.getBoundingClientRect();
+    const isOutsideTiers =
+      tierRect.top > pointerPositon.y ||
+      tierRect.bottom < pointerPositon.y ||
+      tierRect.left > pointerPositon.x ||
+      tierRect.right < pointerPositon.x;
+    const tilesRect = tilesRef.current!.getBoundingClientRect();
+    const isOutsideTiles =
+      tilesRect.top > pointerPositon.y ||
+      tilesRect.bottom < pointerPositon.y ||
+      tilesRect.left > pointerPositon.x ||
+      tilesRect.right < pointerPositon.x;
+
+    return { isOutsideTiers, isOutsideTiles };
+  }
+
+  function removeTileFromTier(tileId: string, parentTier: ITier) {
+    const tempTile = parentTier.children.find((tile) => tile.id === tileId)!;
+    setITiers((prevTiers) =>
+      prevTiers.map((tier) => {
+        tier.children = tier.children.filter((tile) => tile.id !== tileId);
+        return tier;
+      })
+    );
+    setITiles((prevTiles) => [...prevTiles, tempTile]);
+  }
+
+  function removeTileFromTiles(tileId: string) {
+    setITiles((prev) => prev.filter((prevTile) => prevTile.id !== tileId));
+  }
+
+  function handlePointerUp(e: React.PointerEvent) {
+    if (dragTile) {
+      console.log("Has dragtile: ", dragTile);
+      const { isOutsideTiers, isOutsideTiles } = isOutsideDropAreaMobile(
+        e.clientX,
+        e.clientY
+      );
+      removeShadow(e);
+      if (dragTile.tier && isOutsideTiers) {
+        console.log("Is outside tiers");
+        removeTileFromTier(dragTile.id, dragTile.tier);
+      } else if (!dragTile.tier && isOutsideTiles) {
+        removeTileFromTiles(dragTile.id);
+      }
+      setDragTile(null)
+    }
+  }
 
   // useEffect(() => {
-  //   createPlaceholderColorClasses();
+  //   const mobileRegex = /iphone|android|ipad/i;
+  //   if (mobileRegex.test(navigator.userAgent)) {
+  //     setIsMobile(true);
+  //     setRevealMobileNav(true);
+  //     console.log("Mobile detected");
+  //   }
   // }, []);
 
-  function pointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    appRef.current!.style.touchAction = "none";
-
-    const dot = document.createElement("div");
-    dot.id = `${e.pointerId}`;
-    dot.classList.add("dot");
-    dot.style.width = `${e.width + 10}px`;
-    dot.style.height = `${e.width + 10}px`;
-    dot.style.top = `${e.pageY}px`;
-    dot.style.left = `${e.pageX}px`;
-    document.body.append(dot);
-
-    e.currentTarget.releasePointerCapture(e.pointerId);
-  }
-
-  function pointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const dot = document.getElementById(`${e.pointerId}`);
-    if (!dot) return;
-    dot.style.top = `${e.pageY}px`;
-    dot.style.left = `${e.pageX}px`;
-  }
-
-  function pointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    appRef.current!.style.touchAction = "";
-    const dot = document.getElementById(`${e.pointerId}`);
-    if (!dot) return;
-    dot.remove();
-  }
-
-  useEffect(() => {
-    const mobileRegex = /iphone|android|ipad/i;
-    if (mobileRegex.test(navigator.userAgent)) {
-      setIsMobile(true);
-      console.log("On mobile");
-    }
-  }, []);
-
   return (
-    <div className="app" ref={appRef}>
+    <div
+      className="app"
+      ref={appRef}
+      onPointerMove={(e) => {
+        if (dragTile) {
+          positionShadow(e);
+        }
+      }}
+      onPointerUp={(e) => {
+        handlePointerUp(e);
+      }}
+      onPointerCancel={(e) => {
+        if (dragTile) {
+          removeShadow(e);
+        }
+      }}
+    >
       {/* {isSnackbarOpen && (
         <UseSnackbar
           message={snackbarMessage.current}
@@ -304,8 +353,11 @@ function App() {
         />
       )} */}
       {isMobile && (
-        <div className="mobile-warning-overlay">
-          <div className="mobile-warning">
+        <div
+          className="mobile-warning-overlay"
+          onClick={() => setIsMobile(false)}
+        >
+          <div className="mobile-warning" onClick={(e) => e.stopPropagation()}>
             <span>
               Currently working on mobile functionality. Please use a computer
               for now.
@@ -328,21 +380,24 @@ function App() {
           onMouseLeave={(e) => handleSVGTitle(e)}
           onClick={() => downloadList()}
         />
-        {dragFile && (
+        {revealDropArea && (
           <div className="download-wrapper">
             <dialog
               className="drop-area-overlay"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => e.preventDefault()}
-              open={dragFile}
+              open={revealDropArea}
             >
               <span
                 className="close-drag-area"
-                onClick={() => setDragFile(false)}
+                onClick={() => setRevealDropArea(false)}
               >
                 &times;
               </span>
-              <DropArea loadPresets={loadPresets} setDragFile={setDragFile} />
+              <DropArea
+                loadPresets={loadPresets}
+                setDragFile={setRevealDropArea}
+              />
             </dialog>
           </div>
         )}
@@ -351,93 +406,117 @@ function App() {
           title="Click to load presets"
           onMouseEnter={(e) => handleSVGTitle(e)}
           onMouseLeave={(e) => handleSVGTitle(e)}
-          onClick={() => setDragFile((prev) => !prev)}
+          onClick={() => setRevealDropArea((prev) => !prev)}
         />
       </div>
-      <div className="tier-section" ref={tiersRef}>
-        <header>
-          {/* <div className="add-tier"> */}
-          <label>
-            {/* <span>Create tier: </span> */}
-            <input
-              type="text"
-              ref={inputTierRef}
-              placeholder="Enter tier name"
-              onKeyDown={(e) => onInputEnterPressed(e)}
-            />
-          </label>
-          {/* </div> */}
-          <div className="controls">
-            <button onClick={() => handleTierInput()}>
-              Click to add new tier
-            </button>
-            <button onClick={clearTiers}>Delete all tiers</button>
-          </div>
-        </header>
-        {iTiers.length === 0 ? (
-          <div className="no-tiers">No tiers</div>
-        ) : (
-          <ul className="tiers">
-            {iTiers.map((iTier) => (
-              <Container
-                key={`container${uuid()}`}
-                tier={iTier}
-                tiersRef={tiersRef}
-                tilesRef={tilesRef}
-                setITiers={setITiers}
-                setITiles={setITiles}
-                triggerSnackbar={triggerSnackbar}
-                children={iTier.children}
+      <TierMobileDragEvents.Provider value={{ dragTier, setDragTier }}>
+        <div className="tier-section" ref={tierSectionRef}>
+          <header>
+            {/* <div className="add-tier"> */}
+            <label>
+              {/* <span>Create tier: </span> */}
+              <input
+                type="text"
+                ref={inputTierRef}
+                placeholder="Enter tier name"
+                onKeyDown={(e) => onInputEnterPressed(e)}
               />
-            ))}
-          </ul>
-        )}
-      </div>
-      <div className="tile-section" ref={tilesRef}>
-        <header>
-          <label>
-            <input
-              type="text"
-              ref={inputTileNameRef}
-              disabled={isNameDisabled}
-              placeholder="Enter tile name"
-              onChange={(e) => onInputChange(e)}
-              onKeyDown={(e) => onInputEnterPressed(e)}
-            />
-            <span>OR</span>
-            <input
-              type="text"
-              ref={inputTileUrlRef}
-              disabled={isUrlDisabled}
-              placeholder="Paste image url here"
-              onChange={(e) => onInputChange(e)}
-              onKeyDown={(e) => onInputEnterPressed(e)}
-            />
-          </label>
-          <div className="controls">
-            <button onClick={() => handleTileInput()}>
-              Click to add new tile
-            </button>
-            <button onClick={() => setITiles([])}>Delete all tiles</button>
-          </div>
-        </header>
-        {iTiles.length === 0 ? (
-          <div className="no-tiles">No tiles</div>
-        ) : (
-          <ul className="tiles">
-            {iTiles.map((iTile) => (
-              <Tile
-                key={`${iTile.id}`}
-                tile={iTile}
-                tiersRef={tiersRef}
-                tilesRef={tilesRef}
-                setITiers={setITiers}
-                setITiles={setITiles}
+            </label>
+            {/* </div> */}
+            <div className="controls">
+              <button onClick={() => handleTierInput()}>
+                Click to add new tier
+              </button>
+              <button onClick={clearTiers}>Delete all tiers</button>
+            </div>
+          </header>
+          {iTiers.length === 0 ? (
+            <div className="no-tiers">No tiers</div>
+          ) : (
+            <ul className="tiers" ref={tiersRef}>
+              {iTiers.map((iTier) => (
+                <Container
+                  key={`container${uuid()}`}
+                  tier={iTier}
+                  tiersRef={tierSectionRef}
+                  tilesRef={tileSectionRef}
+                  setITiers={setITiers}
+                  setITiles={setITiles}
+                  triggerSnackbar={triggerSnackbar}
+                  removeTileFromTier={removeTileFromTier}
+                  removeTileFromTiles={removeTileFromTiles}
+                  children={iTier.children}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </TierMobileDragEvents.Provider>
+
+      <TileMobileDragEvents.Provider value={{ dragTile, setDragTile }}>
+        <div className="tile-section" ref={tileSectionRef}>
+          <header>
+            <label>
+              <input
+                type="text"
+                ref={inputTileNameRef}
+                disabled={isNameDisabled}
+                placeholder="Enter tile name"
+                onChange={(e) => onInputChange(e)}
+                onKeyDown={(e) => onInputEnterPressed(e)}
               />
-            ))}
-          </ul>
-        )}
-      </div>
+              <span>OR</span>
+              <input
+                type="text"
+                ref={inputTileUrlRef}
+                disabled={isUrlDisabled}
+                placeholder="Paste image url here"
+                onChange={(e) => onInputChange(e)}
+                onKeyDown={(e) => onInputEnterPressed(e)}
+              />
+            </label>
+            <div className="controls">
+              <button onClick={() => handleTileInput()}>
+                Click to add new tile
+              </button>
+              <button onClick={() => setITiles([])}>Delete all tiles</button>
+            </div>
+          </header>
+          {iTiles.length === 0 ? (
+            <div className="no-tiles">No tiles</div>
+          ) : (
+            <ul
+              className="tiles"
+              ref={tilesRef}
+              onPointerDown={() => {
+                if (revealMobileNav) {
+                  console.log("Made false");
+                  setRevealMobileNav(false);
+                }
+              }}
+              onPointerMove={() => {}}
+            >
+              {revealMobileNav && (
+                <div className="swipe-section">
+                  &larr;{` Swipe here `}&rarr;
+                </div>
+              )}
+              {iTiles.map((iTile) => (
+                <Tile
+                  key={`${iTile.id}`}
+                  tile={iTile}
+                  tiersRef={tierSectionRef}
+                  tilesRef={tileSectionRef}
+                  setITiers={setITiers}
+                  setITiles={setITiles}
+                  removeTileFromTier={removeTileFromTier}
+                  removeTileFromTiles={removeTileFromTiles}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </TileMobileDragEvents.Provider>
     </div>
   );
 }
