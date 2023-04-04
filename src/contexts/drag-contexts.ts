@@ -1,5 +1,15 @@
 import { createContext } from "react";
 import { ITier, ITile } from "../App";
+import { Offsets } from "../components/tile";
+
+export type IDragTier = {
+  aboveOrigin?: boolean;
+} & ITier;
+
+export type IDragTile = {
+  tier?: ITier;
+  offsets: Offsets;
+} & ITile;
 
 type ITierMobileDragEvent = {
   dragTier: ITier | null;
@@ -7,13 +17,15 @@ type ITierMobileDragEvent = {
 };
 
 type ITileMobileDragEvent = {
-  dragTile: ITile | null;
-  setDragTile: React.Dispatch<React.SetStateAction<ITile | null>>;
+  dragTile: IDragTile | null;
+  setDragTile: React.Dispatch<React.SetStateAction<IDragTile | null>>;
 };
 
-export const TierMobileDragEvents = createContext<ITierMobileDragEvent | null>(
-  null
-);
-export const TileMobileDragEvents = createContext<ITileMobileDragEvent | null>(
-  null
-);
+export const TierMobileDragEvents = createContext<ITierMobileDragEvent | null>({
+  dragTier: null,
+  setDragTier: () => {},
+});
+export const TileMobileDragEvents = createContext<ITileMobileDragEvent | null>({
+  dragTile: null,
+  setDragTile: () => {},
+});

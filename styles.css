@@ -455,6 +455,15 @@ option {
   align-items: center;
   gap: 1rem;
 }
+.tile-section > header .inputs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.inputs > span {
+  color: white;
+}
 
 .tiles {
   position: relative;
@@ -482,10 +491,10 @@ option {
   text-transform: capitalize;
   /* touch-action: none; */
 }
-.tile-container > span {
+/* .tile-container > span { */
   /* pointer-events: none; */
   /* touch-action: none; */
-}
+/* } */
 .tile-container > img {
   height: 100%;
   width: 100%;
@@ -616,12 +625,13 @@ option {
   .tier-section > header > label {
     align-self: flex-start;
     margin-left: 20%;
-  }
-  .tile-section > header > label {
     flex-direction: row;
     justify-content: center;
     gap: 0.5rem;
-    width: 100%;
+    background-color: red;
+  }
+  .tile-section > header .inputs {
+    width: 80%;
   }
 
   .tiles {

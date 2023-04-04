@@ -15,6 +15,7 @@ import { v4 as uuid } from "uuid";
 import UseSnackbar from "./components/useSnackbar";
 import { ntc } from "./NameThatColor/NameThatColor";
 import {
+  IDragTile,
   TierMobileDragEvents,
   TileMobileDragEvents,
 } from "./contexts/drag-contexts";
@@ -33,9 +34,6 @@ export interface ITile {
   name?: string;
   imageUrl?: string;
 }
-export type IDragTile = {
-  tier?: ITier;
-} & ITile;
 
 function App() {
   const appRef = useRef<HTMLDivElement>(null);
@@ -256,11 +254,11 @@ function App() {
 
   function positionShadow(e: React.PointerEvent) {
     const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
-    if (dragShadow === null) return;
+    if (dragShadow === null || dragTile === null) return;
     // dragShadow.style.top = `${e.pageY - pointerPosition.top}px`;
     // dragShadow.style.left = `${e.pageX - pointerPosition.left}px`;
-    dragShadow.style.top = `${e.pageY - 50}px`;
-    dragShadow.style.left = `${e.pageX + 10}px`;
+    dragShadow.style.top = `${e.pageY - dragTile.offsets.top}px`;
+    dragShadow.style.left = `${e.pageX - dragTile.offsets.left}px`;
   }
 
   function removeShadow(e: React.PointerEvent) {
@@ -302,21 +300,18 @@ function App() {
   }
 
   function handlePointerUp(e: React.PointerEvent) {
-    if (dragTile) {
-      console.log("Has dragtile: ", dragTile);
-      const { isOutsideTiers, isOutsideTiles } = isOutsideDropAreaMobile(
-        e.clientX,
-        e.clientY
-      );
-      removeShadow(e);
-      if (dragTile.tier && isOutsideTiers) {
-        console.log("Is outside tiers");
-        removeTileFromTier(dragTile.id, dragTile.tier);
-      } else if (!dragTile.tier && isOutsideTiles) {
-        removeTileFromTiles(dragTile.id);
-      }
-      setDragTile(null)
+    if (!dragTile) return;
+    const { isOutsideTiers, isOutsideTiles } = isOutsideDropAreaMobile(
+      e.clientX,
+      e.clientY
+    );
+    removeShadow(e);
+    if (dragTile.tier && isOutsideTiers) {
+      removeTileFromTier(dragTile.id, dragTile.tier);
+    } else if (!dragTile.tier && isOutsideTiles) {
+      removeTileFromTiles(dragTile.id);
     }
+    setDragTile(null);
   }
 
   useEffect(() => {
@@ -333,17 +328,13 @@ function App() {
       className="app"
       ref={appRef}
       onPointerMove={(e) => {
-        if (dragTile) {
-          positionShadow(e);
-        }
+        positionShadow(e);
       }}
       onPointerUp={(e) => {
         handlePointerUp(e);
       }}
       onPointerCancel={(e) => {
-        if (dragTile) {
-          removeShadow(e);
-        }
+        removeShadow(e);
       }}
     >
       {/* {isSnackbarOpen && (
@@ -456,25 +447,29 @@ function App() {
       <TileMobileDragEvents.Provider value={{ dragTile, setDragTile }}>
         <div className="tile-section" ref={tileSectionRef}>
           <header>
-            <label>
-              <input
-                type="text"
-                ref={inputTileNameRef}
-                disabled={isNameDisabled}
-                placeholder="Enter tile name"
-                onChange={(e) => onInputChange(e)}
-                onKeyDown={(e) => onInputEnterPressed(e)}
-              />
+            <div className="inputs">
+              <label>
+                <input
+                  type="text"
+                  ref={inputTileNameRef}
+                  disabled={isNameDisabled}
+                  placeholder="Enter tile name"
+                  onChange={(e) => onInputChange(e)}
+                  onKeyDown={(e) => onInputEnterPressed(e)}
+                />
+              </label>
               <span>OR</span>
-              <input
-                type="text"
-                ref={inputTileUrlRef}
-                disabled={isUrlDisabled}
-                placeholder="Paste image url here"
-                onChange={(e) => onInputChange(e)}
-                onKeyDown={(e) => onInputEnterPressed(e)}
-              />
-            </label>
+              <label>
+                <input
+                  type="text"
+                  ref={inputTileUrlRef}
+                  disabled={isUrlDisabled}
+                  placeholder="Paste image url here"
+                  onChange={(e) => onInputChange(e)}
+                  onKeyDown={(e) => onInputEnterPressed(e)}
+                />
+              </label>
+            </div>
             <div className="controls">
               <button onClick={() => handleTileInput()}>
                 Click to add new tile
