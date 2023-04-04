@@ -20,23 +20,23 @@ export interface StorageColorPresets {
 
 interface ContainerProps {
   tier: ITier;
-  tiersRef: React.RefObject<HTMLDivElement>;
-  tilesRef: React.RefObject<HTMLDivElement>;
   setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
   setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
-  triggerSnackbar: (message: string) => void;
+  getTiersSectionRect: () => DOMRect;
+  getTilesSectionRect: () => DOMRect;
+  // triggerSnackbar: (message: string) => void;
   removeTileFromTier(tileId: string, parentTier: ITier): void;
   removeTileFromTiles(tileId: string): void;
   children: ITile[];
 }
 
-const Container = ({
+const Tier = ({
   tier,
-  tiersRef,
-  tilesRef,
   setITiers,
   setITiles,
-  triggerSnackbar,
+  getTiersSectionRect,
+  getTilesSectionRect,
+  // triggerSnackbar,
   removeTileFromTier,
   removeTileFromTiles,
   children,
@@ -199,9 +199,9 @@ const Container = ({
     const closestTier = tier;
     let index: number;
     if (delta <= 0) {
-      triggerSnackbar(
-        `Placed "${dragTier.title.toUpperCase()}" before "${tier.title.toUpperCase()}"`
-      );
+      // triggerSnackbar(
+      //   `Placed "${dragTier.title.toUpperCase()}" before "${tier.title.toUpperCase()}"`
+      // );
       setITiers((prevTiers) => {
         let tempTiers = prevTiers.filter(
           (tier) => tier.title !== dragTier.title
@@ -211,9 +211,9 @@ const Container = ({
         return tempTiers;
       });
     } else {
-      triggerSnackbar(
-        `Placed "${dragTier.title.toUpperCase()}" after "${tier.title.toUpperCase()}"`
-      );
+      // triggerSnackbar(
+      //   `Placed "${dragTier.title.toUpperCase()}" after "${tier.title.toUpperCase()}"`
+      // );
       setITiers((prevTiers) => {
         let tempTiers = prevTiers.filter(
           (tier) => tier.title !== dragTier.title
@@ -434,8 +434,8 @@ const Container = ({
               key={`${iTile!.id}`}
               setITiers={setITiers}
               setITiles={setITiles}
-              tiersRef={tiersRef}
-              tilesRef={tilesRef}
+              getTiersSectionRect={getTiersSectionRect}
+              getTilesSectionRect={getTilesSectionRect}
               tier={tier}
               tile={iTile!}
               removeTileFromTier={removeTileFromTier}
@@ -499,4 +499,4 @@ const Container = ({
   );
 };
 
-export default Container;
+export default Tier;

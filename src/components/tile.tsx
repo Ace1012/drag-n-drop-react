@@ -1,12 +1,12 @@
-import React, { useContext, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { ITier, ITile } from "../App";
 import { TileMobileDragEvents } from "../contexts/drag-contexts";
 
 interface TileProps {
   tile: ITile;
   tier?: ITier;
-  tiersRef: React.RefObject<HTMLDivElement>;
-  tilesRef: React.RefObject<HTMLDivElement>;
+  getTiersSectionRect: () => DOMRect;
+  getTilesSectionRect: () => DOMRect;
   setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
   setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
   removeTileFromTier(tileId: string, parentTier: ITier): void;
@@ -21,8 +21,8 @@ export interface Offsets {
 const Tile = ({
   tile,
   tier,
-  tiersRef,
-  tilesRef,
+  getTiersSectionRect,
+  getTilesSectionRect,
   setITiers,
   setITiles,
   removeTileFromTier,
@@ -43,13 +43,13 @@ const Tile = ({
 
   function isOutsideDropArea(clientX: number, clientY: number) {
     const pointerPositon = { y: clientY, x: clientX };
-    const tierRect = tiersRef.current!.getBoundingClientRect();
+    const tierRect = getTiersSectionRect();
     const isOutsideTiers =
       tierRect.top > pointerPositon.y ||
       tierRect.bottom < pointerPositon.y ||
       tierRect.left > pointerPositon.x ||
       tierRect.right < pointerPositon.x;
-    const tilesRect = tilesRef.current!.getBoundingClientRect();
+    const tilesRect = getTilesSectionRect();
     const isOutsideTiles =
       tilesRect.top > pointerPositon.y ||
       tilesRect.bottom < pointerPositon.y ||

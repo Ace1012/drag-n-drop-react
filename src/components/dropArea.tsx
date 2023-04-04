@@ -3,6 +3,8 @@ import { ITier, ITile, ColorPreset } from "../App";
 
 interface DropAreaProps {
   setDragFile: React.Dispatch<React.SetStateAction<boolean>>;
+  revealDropArea: boolean;
+  setRevealDropArea: React.Dispatch<React.SetStateAction<boolean>>;
   loadPresets(presets: Presets): void;
 }
 
@@ -12,7 +14,12 @@ export interface Presets {
   tiles: ITile[];
 }
 
-const DropArea = ({ setDragFile, loadPresets }: DropAreaProps) => {
+const DropArea = ({
+  revealDropArea,
+  setRevealDropArea,
+  setDragFile,
+  loadPresets,
+}: DropAreaProps) => {
   const dropAreaRef = useRef<HTMLDivElement>(null);
 
   function parsePresets(file: File) {
@@ -53,25 +60,38 @@ const DropArea = ({ setDragFile, loadPresets }: DropAreaProps) => {
   }
 
   return (
-    <div
-      className="drop-area"
-      ref={dropAreaRef}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
+    <dialog
+      className="drop-area-overlay"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => e.preventDefault()}
+      open={revealDropArea}
     >
-      <span>Drop your file here to load the presets.</span>
+      <span
+        className="close-drag-area"
+        onClick={() => setRevealDropArea(false)}
+      >
+        &times;
+      </span>
+      <div
+        className="drop-area"
+        ref={dropAreaRef}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        <span>Drop your file here to load the presets.</span>
 
-      <label>
-        <input
-          onChange={handleInput}
-          type="file"
-          id="file-input"
-          name="file-input"
-          accept=".dnd*"
-        />
-      </label>
-    </div>
+        <label>
+          <input
+            onChange={handleInput}
+            type="file"
+            id="file-input"
+            name="file-input"
+            accept=".dnd*"
+          />
+        </label>
+      </div>
+    </dialog>
   );
 };
 
