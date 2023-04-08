@@ -10,51 +10,34 @@ import {
 import { ITier, ITierSectionForwardRefProps, ITile } from "../App";
 import { v4 as uuid } from "uuid";
 import Tier from "./tier";
+import { useDispatch, useSelector } from "react-redux/es/exports";
+import { addTier, deleteAllTiers, selectTiers } from "../store/useStore";
 
 interface ITierSectionProps {
-  iTiers: ITier[];
-  setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
-  iTiles: ITile[];
-  setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
   getTilesSectionRect: () => DOMRect;
-  clearTiers: () => void;
-  removeTileFromTier(tileId: string, parentTier: ITier): void;
-  removeTileFromTiles(tileId: string): void;
 }
 
 const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
-  (
-    {
-      iTiers,
-      setITiers,
-      iTiles,
-      setITiles,
-      getTilesSectionRect,
-      clearTiers,
-      removeTileFromTier,
-      removeTileFromTiles,
-    },
-    ref
-  ) => {
+  ({ getTilesSectionRect }, ref) => {
     const inputTierRef = useRef<HTMLInputElement>(null);
     const tiersSectionRef = useRef<HTMLDivElement>(null);
     const tiersRef = useRef<HTMLUListElement>(null);
 
+    const dispatch = useDispatch();
+    const tiers = useSelector(selectTiers);
+
     function handleTierInput() {
       const tierTitle = inputTierRef.current?.value.toLowerCase();
-      if (tierTitle === "") {
+      if (tierTitle === "" || tierTitle === undefined) {
         alert("Cannot add empty tier");
       } else if (
-        iTiers.some(
+        tiers.some(
           (tier) => tier.title.toLowerCase() === tierTitle?.toLowerCase()
         )
       ) {
         alert("Tier already exists");
       } else {
-        setITiers((prev) => [
-          ...prev,
-          { title: tierTitle, children: [] } as ITier,
-        ]);
+        dispatch(addTier({ title: tierTitle, children: [] }));
         inputTierRef.current!.value = "";
       }
     }
@@ -97,24 +80,22 @@ const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
             <button onClick={() => handleTierInput()}>
               Click to add new tier
             </button>
-            <button onClick={clearTiers}>Delete all tiers</button>
+            <button onClick={() => dispatch(deleteAllTiers(tiers))}>
+              Delete all tiers
+            </button>
           </div>
         </header>
-        {iTiers.length === 0 ? (
+        {tiers.length === 0 ? (
           <div className="no-tiers">No tiers</div>
         ) : (
           <ul className="tiers" ref={tiersRef}>
-            {iTiers.map((iTier) => (
+            {tiers.map((iTier) => (
               <Tier
                 key={`container${uuid()}`}
                 tier={iTier}
                 getTiersSectionRect={getTiersSectionRect}
                 getTilesSectionRect={getTilesSectionRect}
-                setITiers={setITiers}
-                setITiles={setITiles}
                 //   triggerSnackbar={triggerSnackbar}
-                removeTileFromTier={removeTileFromTier}
-                removeTileFromTiles={removeTileFromTiles}
                 children={iTier.children}
               />
             ))}

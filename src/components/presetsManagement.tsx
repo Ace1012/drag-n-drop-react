@@ -2,22 +2,19 @@ import { useState } from "react";
 import { ColorPreset, ITier, ITile } from "../App";
 import { FaDownload, FaSave } from "react-icons/fa";
 import DropArea, { Presets } from "./dropArea";
+import { useDispatch, useSelector } from "react-redux/es/exports";
+import { overrideTiers, overrideTiles, selectTiers, selectTiles } from "../store/useStore";
 
-interface IPresetsManagementProps {
-  iTiers: ITier[];
-  setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
-  iTiles: ITile[];
-  setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
-}
+interface IPresetsManagementProps {}
 
-const PresetsManagement = ({
-  iTiers,
-  iTiles,
-  setITiers,
-  setITiles,
-}: IPresetsManagementProps) => {
+const PresetsManagement = ({}: IPresetsManagementProps) => {
   const [svgTitle, setSvgTitle] = useState("Click to save current tier list");
   const [revealDropArea, setRevealDropArea] = useState(false);
+
+  const dispatch = useDispatch();
+
+  const tiers = useSelector(selectTiers);
+  const tiles = useSelector(selectTiles);
 
   function handleSVGTitle(e: React.MouseEvent<SVGElement, MouseEvent>) {
     if (e.type === "mouseenter") {
@@ -32,7 +29,7 @@ const PresetsManagement = ({
   }
 
   function compilePresets() {
-    return iTiers.reduce((presets, tier) => {
+    return tiers.reduce((presets, tier) => {
       let storageValue = localStorage.getItem(tier.title);
       if (storageValue) {
         return { ...presets, [tier.title]: JSON.parse(storageValue) };
@@ -46,8 +43,8 @@ const PresetsManagement = ({
     const colorPresets = compilePresets();
     const presets = {
       colors: { ...colorPresets },
-      tiers: [...iTiers],
-      tiles: [...iTiles],
+      tiers: [...tiers],
+      tiles: [...tiles],
     };
     const file = new File([btoa(JSON.stringify(presets))], "Tierlist.dnd", {
       type: "text/plain",
@@ -61,8 +58,10 @@ const PresetsManagement = ({
 
   function loadPresets(presets: Presets) {
     console.log("Presets are", presets);
-    setITiers(presets.tiers);
-    setITiles(presets.tiles);
+    dispatch(overrideTiers(presets.tiers))
+    dispatch(overrideTiles(presets.tiles))
+    // setITiers(presets.tiers);
+    // setITiles(presets.tiles);
     localStorage.clear();
     localStorage.setItem("page-loaded", "true");
     const keys = Object.keys(presets.colors);

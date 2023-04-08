@@ -1,16 +1,4 @@
-import React, {
-  ChangeEvent,
-  KeyboardEvent,
-  createContext,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { FaDownload, FaSave } from "react-icons/fa";
-import DropArea, { Presets } from "./components/dropArea";
-import Tier, { FormSubmitValue } from "./components/tier";
-import Tile, { Offsets } from "./components/tile";
+import React, { useEffect, useReducer, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import UseSnackbar from "./components/useSnackbar";
 import { ntc } from "./NameThatColor/NameThatColor";
@@ -23,6 +11,13 @@ import TierSection from "./components/tierSection";
 import TileSection from "./components/tileSection";
 import MobileWarning from "./components/mobileWarning";
 import PresetsManagement from "./components/presetsManagement";
+import { useSelector, useDispatch } from "react-redux/es/exports";
+import {
+  removeTierChild,
+  removeTileFromTiles,
+  selectTiers,
+  selectTiles,
+} from "./store/useStore";
 
 export interface ColorPreset {
   [key: string]: { backgroundColor: string };
@@ -55,22 +50,12 @@ function App() {
   const tilesSectionForwardRef = useRef<ITileSectionForwardRefProps>(null);
   const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
 
-  const [iTiers, setITiers] = useState<ITier[]>([
-    { title: "default", children: [] },
-  ]);
-  const [iTiles, setITiles] = useState<ITile[]>([
-    {
-      id: "tiledkajdbjahkdnaklsdasadada",
-      name: "A",
-    },
-    {
-      id: "tilealsbdalkjdblkajdnalkdjns",
-      name: "B",
-    },
-  ]);
+  const tiers = useSelector(selectTiers);
+  const tiles = useSelector(selectTiles);
+
+  const dispatch = useDispatch();
+
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
-  // const [svgTitle, setSvgTitle] = useState("Click to save current tier list");
-  // const [revealDropArea, setRevealDropArea] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [revealMobileNav, setRevealMobileNav] = useState(false);
   const [dragTier, setDragTier] = useState<ITier | null>(null);
@@ -81,23 +66,12 @@ function App() {
   //   setIsSnackbarOpen(true);
   // }
 
-  function clearTiers() {
-    setITiers((prevTiers) => {
-      setITiles((prevTiles) => {
-        return [
-          ...prevTiles,
-          ...prevTiers.reduce(
-            (children, prevTier) => {
-              return [...children, ...prevTier.children];
-            },
-            [...prevTiles]
-          ),
-        ];
-      });
-      return [];
-    });
-  }
-
+  /**
+   * Adjust the position of the shadow when pointermoves.
+   *
+   * @param e
+   * @returns
+   */
   function positionShadow(e: React.PointerEvent) {
     const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
     if (dragShadow === null || dragTile === null) return;
@@ -107,11 +81,27 @@ function App() {
     dragShadow.style.left = `${e.pageX - dragTile.offsets.left}px`;
   }
 
+  /**
+   * Removes the shadow during the pointerup event.
+   *
+   * @param e
+   */
   function removeShadow(e: React.PointerEvent) {
     const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
     dragShadow?.remove();
   }
 
+  /**
+   * Calculates whether the pointerup event(after dragging a tile) is
+   * outside the tiers/tiles section.
+   *
+   * NB: On mobile this corresponds to the tiers and tiles sections while
+   * usually it corresponds to the Tiers and Tile Sections respectively.
+   *
+   * @param clientX
+   * @param clientY
+   * @returns
+   */
   function isOutsideDropAreaMobile(clientX: number, clientY: number) {
     const pointerPositon = { y: clientY, x: clientX };
     const tierRect = getMobileTiersSectionRect();
@@ -130,21 +120,13 @@ function App() {
     return { isOutsideTiers, isOutsideTiles };
   }
 
-  function removeTileFromTier(tileId: string, parentTier: ITier) {
-    const tempTile = parentTier.children.find((tile) => tile.id === tileId)!;
-    setITiers((prevTiers) =>
-      prevTiers.map((tier) => {
-        tier.children = tier.children.filter((tile) => tile.id !== tileId);
-        return tier;
-      })
-    );
-    setITiles((prevTiles) => [...prevTiles, tempTile]);
-  }
-
-  function removeTileFromTiles(tileId: string) {
-    setITiles((prev) => prev.filter((prevTile) => prevTile.id !== tileId));
-  }
-
+  /**
+   * Handles the pointerup event, i.e. triggered when a
+   * finger or stylus stops making contact with the screen.
+   *
+   * @param e
+   * @returns
+   */
   function handlePointerUp(e: React.PointerEvent) {
     if (!dragTile) return;
     const { isOutsideTiers, isOutsideTiles } = isOutsideDropAreaMobile(
@@ -153,29 +135,65 @@ function App() {
     );
     removeShadow(e);
     if (dragTile.tier && isOutsideTiers) {
-      removeTileFromTier(dragTile.id, dragTile.tier);
+      dispatch(
+        removeTierChild({
+          childTile: dragTile,
+          parentTierTitle: dragTile.tier.title,
+        })
+      );
     } else if (!dragTile.tier && isOutsideTiles) {
-      removeTileFromTiles(dragTile.id);
+      dispatch(removeTileFromTiles(dragTile.id));
     }
     setDragTile(null);
   }
 
+  /**
+   * Returns the DOMRect of the Tiers Section.
+   * Used to calculate the whether a pointerevent (usually the pointerup event),
+   * happened outside the bounds.
+   *
+   * @returns
+   */
   function getTiersSectionRect(): DOMRect {
     return tiersSectionForwardRef.current!.returnTiersRect();
   }
 
+  /**
+   * Returns the DOMRect of the Tiles Section.
+   * Used to calculate the whether a pointerevent (usually the pointerup event),
+   * happened outside the bounds.
+   *
+   * @returns
+   */
   function getTilesSectionRect(): DOMRect {
     return tilesSectionForwardRef.current!.returnTilesRect();
   }
 
+  /**
+   * Returns the DOMRect of Tiers.
+   * Used to calculate the whether a pointerevent (usually the pointerup event),
+   * happened outside the bounds.
+   *
+   * @returns
+   */
   function getMobileTiersSectionRect(): DOMRect {
     return tiersSectionForwardRef.current!.returnMobileTiersRect();
   }
 
+  /**
+   * Returns the DOMRect of Tiles.
+   * Used to calculate the whether a pointerevent (usually the pointerup event),
+   * happened outside the bounds.
+   *
+   * @returns
+   */
   function getMobileTilesSectionRect(): DOMRect {
     return tilesSectionForwardRef.current!.returnMobileTilesRect();
   }
 
+  /**
+   * Checks whether on mobile to display warning
+   */
   useEffect(() => {
     const mobileRegex = /iphone|android|ipad/i;
     if (mobileRegex.test(navigator.userAgent)) {
@@ -206,38 +224,20 @@ function App() {
         />
       )} */}
       {isMobile && <MobileWarning setIsMobile={setIsMobile} />}
-      <PresetsManagement
-        iTiers={iTiers}
-        iTiles={iTiles}
-        setITiers={setITiers}
-        setITiles={setITiles}
-      />
+      <PresetsManagement />
       <TierMobileDragEvents.Provider value={{ dragTier, setDragTier }}>
         <TierSection
           ref={tiersSectionForwardRef}
-          iTiers={iTiers}
-          setITiers={setITiers}
-          iTiles={iTiles}
-          setITiles={setITiles}
           getTilesSectionRect={getTilesSectionRect}
-          clearTiers={clearTiers}
-          removeTileFromTier={removeTileFromTier}
-          removeTileFromTiles={removeTileFromTiles}
         />
       </TierMobileDragEvents.Provider>
 
       <TileMobileDragEvents.Provider value={{ dragTile, setDragTile }}>
         <TileSection
           ref={tilesSectionForwardRef}
-          iTiers={iTiers}
-          setITiers={setITiers}
-          iTiles={iTiles}
-          setITiles={setITiles}
           revealMobileNav={revealMobileNav}
           getTiersSectionRect={getTiersSectionRect}
           setRevealMobileNav={setRevealMobileNav}
-          removeTileFromTier={removeTileFromTier}
-          removeTileFromTiles={removeTileFromTiles}
         />
       </TileMobileDragEvents.Provider>
     </div>

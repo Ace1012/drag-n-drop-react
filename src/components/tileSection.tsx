@@ -10,34 +10,22 @@ import {
 import Tile from "./tile";
 import { ITier, ITile, ITileSectionForwardRefProps } from "../App";
 import { v4 as uuid } from "uuid";
+import { useDispatch, useSelector } from "react-redux/es/exports";
+import {
+  addTiles,
+  deleteAllTiles,
+  selectTiers,
+  selectTiles,
+} from "../store/useStore";
 
 interface ITileSectionProps {
-  iTiers: ITier[];
-  setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
-  iTiles: ITile[];
-  setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
   revealMobileNav: boolean;
   setRevealMobileNav: React.Dispatch<React.SetStateAction<boolean>>;
   getTiersSectionRect: () => DOMRect;
-  removeTileFromTier(tileId: string, parentTier: ITier): void;
-  removeTileFromTiles(tileId: string): void;
 }
 
 const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
-  (
-    {
-      iTiers,
-      setITiers,
-      iTiles,
-      setITiles,
-      revealMobileNav,
-      setRevealMobileNav,
-      getTiersSectionRect,
-      removeTileFromTier,
-      removeTileFromTiles,
-    },
-    ref
-  ) => {
+  ({ revealMobileNav, setRevealMobileNav, getTiersSectionRect }, ref) => {
     const inputTileUrlRef = useRef<HTMLInputElement>(null);
     const inputTileNameRef = useRef<HTMLInputElement>(null);
     const tilesSectionRef = useRef<HTMLDivElement>(null);
@@ -45,6 +33,11 @@ const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
 
     const [isNameDisabled, setIsNameDisabled] = useState(false);
     const [isUrlDisabled, setIsUrlDisabled] = useState(false);
+
+    const tiles = useSelector(selectTiles);
+    const tiers = useSelector(selectTiers);
+
+    const dispatch = useDispatch();
 
     function handleTileInput() {
       const tileImageUrl = inputTileUrlRef.current?.value;
@@ -54,12 +47,12 @@ const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
         return;
       }
       if (
-        iTiles.some(
+        tiles.some(
           (tile) =>
             tile.name?.toLowerCase() === tileName ||
             tile.imageUrl === `url(${tileImageUrl})`
         ) ||
-        iTiers.some((tier) =>
+        tiers.some((tier) =>
           tier.children.some(
             (tile) =>
               tile.name?.toLowerCase() === tileName ||
@@ -91,7 +84,8 @@ const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
       }
       inputTileUrlRef.current!.value = "";
       inputTileNameRef.current!.value = "";
-      setITiles((prevTiles) => [...prevTiles, newTile]);
+
+      dispatch(addTiles(newTile));
       setIsNameDisabled(false);
       setIsUrlDisabled(false);
     }
@@ -178,10 +172,12 @@ const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
             <button onClick={() => handleTileInput()}>
               Click to add new tile
             </button>
-            <button onClick={() => setITiles([])}>Delete all tiles</button>
+            <button onClick={() => dispatch(deleteAllTiles())}>
+              Delete all tiles
+            </button>
           </div>
         </header>
-        {iTiles.length === 0 ? (
+        {tiles.length === 0 ? (
           <div className="no-tiles">No tiles</div>
         ) : (
           <ul
@@ -198,16 +194,12 @@ const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
             {revealMobileNav && (
               <div className="swipe-section">&larr;{` Swipe here `}&rarr;</div>
             )}
-            {iTiles.map((iTile) => (
+            {tiles.map((tile) => (
               <Tile
-                key={`${iTile.id}`}
-                tile={iTile}
+                key={`${tile.id}`}
+                tile={tile}
                 getTiersSectionRect={getTiersSectionRect}
                 getTilesSectionRect={getTilesSectionRect}
-                setITiers={setITiers}
-                setITiles={setITiles}
-                removeTileFromTier={removeTileFromTier}
-                removeTileFromTiles={removeTileFromTiles}
               />
             ))}
           </ul>

@@ -22,10 +22,36 @@ const DropArea = ({
 }: DropAreaProps) => {
   const dropAreaRef = useRef<HTMLDivElement>(null);
 
+/**
+ * Controls the styling of the dragarea to make communicate that
+ * a dragevent is underway.
+ * 
+ * @param e 
+ */
+  function onDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    dropAreaRef.current!.style.border = "3px dotted green";
+  }
+
+  /**
+   * Resets the dragover styling applied
+   * 
+   * @param e 
+   */
+  function onDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    dropAreaRef.current!.style.border = "";
+  }
+    
+  /**
+   * Parses the received file and loads the presets.
+   * 
+   * @param file 
+   */
   function parsePresets(file: File) {
     if (file.name.includes(".dnd")) {
       const reader = new FileReader();
-      reader.onload = async (e) => {
+      reader.onload = () => {
         const presets = JSON.parse(atob(reader.result as string)) as Presets;
         loadPresets(presets);
       };
@@ -35,16 +61,11 @@ const DropArea = ({
     }
   }
 
-  function onDragOver(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    dropAreaRef.current!.style.border = "3px dotted green";
-  }
-
-  function onDragLeave(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    dropAreaRef.current!.style.border = "";
-  }
-
+  /**
+   * Handles the drop event to fetch the file to be parsed.
+   * 
+   * @param e 
+   */
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
@@ -52,7 +73,13 @@ const DropArea = ({
     parsePresets(file);
     setDragFile(false);
   }
-
+  
+  /**
+   * Extracts the file selected using the HTMLInputElement
+   * and sends it to be parsed.
+   * 
+   * @param e 
+   */
   async function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files![0];
     parsePresets(file);

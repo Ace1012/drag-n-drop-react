@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ITier, ITile } from "../App";
 import { FaTrash } from "react-icons/fa";
 import { AiFillSetting } from "react-icons/ai";
@@ -8,37 +8,37 @@ import CustomizationMenu, {
 } from "./customizationMenu";
 import { CirclePicker } from "react-color";
 import { ntc } from "../NameThatColor/NameThatColor";
+import {
+  addTileToTier,
+  editTitle,
+  positionTier,
+  removeTier,
+  transferTile,
+} from "../store/useStore";
+import { useDispatch } from "react-redux";
 
-export interface FormSubmitValue {
+export interface IFormSubmitValue {
   color: string;
   newTitle?: string;
 }
 
-export interface StorageColorPresets {
+export interface IStorageColorPresets {
   backgroundColor: string;
 }
 
 interface ContainerProps {
   tier: ITier;
-  setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
-  setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
   getTiersSectionRect: () => DOMRect;
   getTilesSectionRect: () => DOMRect;
   // triggerSnackbar: (message: string) => void;
-  removeTileFromTier(tileId: string, parentTier: ITier): void;
-  removeTileFromTiles(tileId: string): void;
   children: ITile[];
 }
 
 const Tier = ({
   tier,
-  setITiers,
-  setITiles,
   getTiersSectionRect,
   getTilesSectionRect,
   // triggerSnackbar,
-  removeTileFromTier,
-  removeTileFromTiles,
   children,
 }: ContainerProps) => {
   const tierContainerRef = useRef<HTMLLIElement>(null);
@@ -46,7 +46,7 @@ const Tier = ({
   const tierContainerFooterRef = useRef<HTMLLIElement>(null);
   const contentAreaRef = useRef<HTMLUListElement>(null);
   const customMenuRef = useRef<HandleCustomizationMenuProps>(null);
-  const formSubmitValue = useRef<FormSubmitValue>({
+  const formSubmitValue = useRef<IFormSubmitValue>({
     color: "",
   });
 
@@ -55,10 +55,12 @@ const Tier = ({
   const [openColorPicker, setOpenColorPicker] = useState(false);
   const [tierBackgroundColor, setTierBackgroundColor] = useState(
     localStorage.getItem(tier.title)
-      ? (JSON.parse(localStorage.getItem(tier.title)!) as StorageColorPresets)
+      ? (JSON.parse(localStorage.getItem(tier.title)!) as IStorageColorPresets)
           .backgroundColor
       : "#212121"
   );
+
+  const dispatch = useDispatch();
 
   function dragStart(e: React.DragEvent) {
     tierContainerRef.current!.style.opacity = "0.5";
@@ -76,7 +78,7 @@ const Tier = ({
     const delta = e.clientY - tierMiddle;
     const isDraggingTier = e.dataTransfer.types.includes("tier");
     if (!isDraggingThisTier && isDraggingTier) {
-      console.log(tierBackgroundColor);
+      // console.log(tierBackgroundColor);
       if (delta <= 0) {
         console.log("Before");
         tierContainerRef.current!.dataset.positon = "before";
@@ -127,20 +129,34 @@ const Tier = ({
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     const dragTierRaw = e.dataTransfer.getData("tier");
+    const dragTier = dragTierRaw
+      ? (JSON.parse(e.dataTransfer.getData("tier")) as ITier)
+      : null;
+
+    const dragParentTierRaw = e.dataTransfer.getData("tile-tier");
+    const dragParentTier = dragParentTierRaw
+      ? (JSON.parse(e.dataTransfer.getData("tile-tier")) as ITier)
+      : null;
+
+    const dragTileRaw = e.dataTransfer.getData("tile");
+    const dragTile = dragTileRaw ? (JSON.parse(dragTileRaw) as ITile) : null;
+
     if (
-      dragTierRaw &&
-      (JSON.parse(dragTierRaw) as ITier).title !== tier.title
+      dragTier &&
+      dragTier?.title !== tier.title &&
+      dragParentTier?.title !== tier.title
     ) {
+      // When a tier is dragged on top of another tier
       reOrganizeTiers(e);
-    } else if (e.dataTransfer.getData("tile")) {
-      if (e.dataTransfer.getData("tile-tier")) {
-        const tile = JSON.parse(e.dataTransfer.getData("tile")) as ITile;
-        const tierTile = JSON.parse(
-          e.dataTransfer.getData("tile-tier")
-        ) as ITier;
-        tileDrop(e, tile, { tier: tierTile });
+    } else if (dragTile) {
+      // When a tile is dragged on top of a tier and not another tile.
+
+      if (dragParentTier) {
+        //If the tile being dragged was in a tier already.
+        tileDrop(e, dragTile, dragParentTier);
       } else {
-        tileDrop(e, JSON.parse(e.dataTransfer.getData("tile")));
+        // If the tile was not in a tier.
+        tileDrop(e, dragTile);
       }
     }
     tierContainerRef.current!.removeAttribute("data-position");
@@ -148,46 +164,27 @@ const Tier = ({
 
   function tileDrop(
     e: React.DragEvent,
-    iTile: ITile,
-    options?: { tier: ITier }
+    dragTile: ITile,
+    dragParentTier?: ITier
   ) {
-    if (options?.tier) {
+    if (dragParentTier) {
       console.log("Drop condition 1: Moving tile from one tier to another");
-      setITiers((prevTiers) =>
-        prevTiers.map((prevTier) => {
-          if (prevTier.title === options.tier.title) {
-            prevTier.children = [
-              ...prevTier.children.filter((tile) => tile.id !== iTile.id),
-            ];
-          }
-          if (prevTier.title === tier.title) {
-            prevTier.children = [...prevTier.children, iTile];
-          }
-          return prevTier;
+      dispatch(
+        transferTile({
+          tile: dragTile,
+          originTier: dragParentTier,
+          destinationTier: tier,
         })
       );
     } else {
       console.log("Drop condition 3: Adding tile to tier");
-      setITiles((prevTiles) =>
-        prevTiles.length === 1
-          ? []
-          : prevTiles.filter((tile) => tile.id !== iTile.id)
-      );
-      setITiers((prevITiers) =>
-        prevITiers.map((prevTier) => {
-          if (prevTier.title === tier.title) {
-            prevTier.children = [...prevTier.children, iTile];
-          }
-          return prevTier;
-        })
-      );
+      dispatch(addTileToTier({ destinationTierTitle: tier.title, dragTile }));
     }
   }
 
-  function removeTier(title: string) {
+  function dispatchRemoveTier() {
     localStorage.removeItem(tier.title);
-    setITiles((prevTiles) => [...prevTiles, ...tier.children]);
-    setITiers((prevTiers) => prevTiers.filter((tier) => tier.title !== title));
+    dispatch(removeTier(tier));
   }
 
   function reOrganizeTiers(e: React.DragEvent) {
@@ -198,31 +195,12 @@ const Tier = ({
     const delta = e.clientY - tierMiddle;
     const closestTier = tier;
     let index: number;
-    if (delta <= 0) {
-      // triggerSnackbar(
-      //   `Placed "${dragTier.title.toUpperCase()}" before "${tier.title.toUpperCase()}"`
-      // );
-      setITiers((prevTiers) => {
-        let tempTiers = prevTiers.filter(
-          (tier) => tier.title !== dragTier.title
-        );
-        index = tempTiers.indexOf(closestTier);
-        tempTiers.splice(index, 0, dragTier);
-        return tempTiers;
-      });
-    } else {
-      // triggerSnackbar(
-      //   `Placed "${dragTier.title.toUpperCase()}" after "${tier.title.toUpperCase()}"`
-      // );
-      setITiers((prevTiers) => {
-        let tempTiers = prevTiers.filter(
-          (tier) => tier.title !== dragTier.title
-        );
-        index = tempTiers.indexOf(closestTier);
-        tempTiers.splice(index + 1, 0, dragTier);
-        return tempTiers;
-      });
-    }
+    // triggerSnackbar(
+    //   `Placed "${dragTier.title.toUpperCase()}" before "${tier.title.toUpperCase()}"`
+    // );
+    dispatch(
+      positionTier({ delta, destinationTier: tier, originTier: dragTier })
+    );
   }
 
   function closeMenu() {
@@ -283,13 +261,12 @@ const Tier = ({
         color: "",
       };
     }
-    console.log(formSubmitValue.current);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     let colorPresets = localStorage.getItem(tier.title)
-      ? (JSON.parse(localStorage.getItem(tier.title)!) as FormSubmitValue)
+      ? (JSON.parse(localStorage.getItem(tier.title)!) as IFormSubmitValue)
       : null;
     if (
       formSubmitValue.current.color !== "" &&
@@ -312,15 +289,7 @@ const Tier = ({
         localStorage.removeItem(tier.title);
         localStorage.setItem(newTitle, JSON.stringify(colorPresets));
       }
-      setITiers((prevTiers) => {
-        prevTiers.forEach((prevTier) => {
-          if (prevTier.title === tier.title) {
-            prevTier.title = formSubmitValue.current.newTitle!;
-          }
-          return prevTier;
-        });
-        return prevTiers;
-      });
+      dispatch(editTitle({ newTitle, oldTitle: tier.title }));
     }
     closeMenu();
   }
@@ -432,14 +401,11 @@ const Tier = ({
           children.map((iTile) => (
             <Tile
               key={`${iTile!.id}`}
-              setITiers={setITiers}
-              setITiles={setITiles}
               getTiersSectionRect={getTiersSectionRect}
               getTilesSectionRect={getTilesSectionRect}
               tier={tier}
               tile={iTile!}
-              removeTileFromTier={removeTileFromTier}
-              removeTileFromTiles={removeTileFromTiles}
+              // removeTileFromTiles={removeTileFromTiles}
             />
           ))
         ) : (
@@ -490,7 +456,7 @@ const Tier = ({
         {/* </div> */}
         <FaTrash
           className="footer-icon"
-          onClick={() => removeTier(tier.title)}
+          onClick={dispatchRemoveTier}
           size={30}
           color="rgb(130, 130, 130)"
         />

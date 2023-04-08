@@ -1,16 +1,21 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useRef } from "react";
 import { ITier, ITile } from "../App";
 import { TileMobileDragEvents } from "../contexts/drag-contexts";
+import { useDispatch } from "react-redux/es/exports";
+import {
+  removeTierChild,
+  removeTileFromTiles,
+  mutateTiles,
+  positionTileInTiles,
+} from "../store/useStore";
 
 interface TileProps {
   tile: ITile;
   tier?: ITier;
   getTiersSectionRect: () => DOMRect;
   getTilesSectionRect: () => DOMRect;
-  setITiers: React.Dispatch<React.SetStateAction<ITier[]>>;
-  setITiles: React.Dispatch<React.SetStateAction<ITile[]>>;
-  removeTileFromTier(tileId: string, parentTier: ITier): void;
-  removeTileFromTiles(tileId: string): void;
+  // removeTileFromTier(tileId: string, parentTier: ITier): void;
+  // removeTileFromTiles(tileId: string): void;
 }
 
 export interface Offsets {
@@ -23,11 +28,9 @@ const Tile = ({
   tier,
   getTiersSectionRect,
   getTilesSectionRect,
-  setITiers,
-  setITiles,
-  removeTileFromTier,
-  removeTileFromTiles,
-}: TileProps) => {
+}: // removeTileFromTier,
+// removeTileFromTiles,
+TileProps) => {
   const tileRef = useRef<HTMLLIElement>(null);
   const pointerPosition = useRef<Offsets>({
     left: 0,
@@ -36,6 +39,8 @@ const Tile = ({
   const isTouchDragging = useRef(false);
 
   const tilesContext = useContext(TileMobileDragEvents);
+
+  const dispatch = useDispatch();
 
   /**
    * Utility Functions
@@ -72,136 +77,35 @@ const Tile = ({
       ? (JSON.parse(e.dataTransfer.getData("tile-tier")) as ITier)
       : null;
 
-    if (tier) {
-      if (dragTileTier) {
-        //Executed when a tile within a tier is dragged on top of another tile within a tier.
-        setITiers((prevTiers) =>
-          prevTiers.map((prevTier) => {
-            if (prevTier.title === dragTileTier.title) {
-              prevTier.children = prevTier.children.filter(
-                (prevTile) => prevTile.id !== dragTile.id
-              );
-            }
-            if (prevTier.title === tier.title) {
-              prevTier.children = prevTier.children.filter(
-                (prevTile) => prevTile.id !== dragTile.id
-              );
-              if (delta <= 0) {
-                prevTier.children.splice(
-                  prevTier.children.indexOf(tile),
-                  0,
-                  dragTile
-                );
-              } else {
-                prevTier.children.splice(
-                  prevTier.children.indexOf(tile) + 1,
-                  0,
-                  dragTile
-                );
-              }
-            }
-            return prevTier;
-          })
-        );
-      } else {
-        //Executed when a tier-less tile is dragged on top of another tile within another tier.
-        setITiers((prevTiers) => {
-          prevTiers.forEach((prevTier) => {
-            if (prevTier.title === tier.title)
-              if (delta <= 0) {
-                prevTier.children.splice(
-                  prevTier.children.indexOf(tile),
-                  0,
-                  dragTile
-                );
-              } else {
-                prevTier.children.splice(
-                  prevTier.children.indexOf(tile) + 1,
-                  0,
-                  dragTile
-                );
-              }
-            return prevTier;
-          });
-          return prevTiers;
-        });
-        setITiles((prevTiles) =>
-          prevTiles.filter((prevTile) => prevTile.id !== dragTile.id)
-        );
-      }
-    } else {
-      if (dragTileTier) {
-        //Executed when a tile within a tier is dragged on top of a tier-less tile.
-        setITiers((prevTiers) => {
-          prevTiers.forEach((prevTier) => {
-            if (prevTier.title === dragTileTier.title) {
-              prevTier.children = prevTier.children.filter(
-                (prevTile) => prevTile.id !== dragTile.id
-              );
-            }
-            return prevTier;
-          });
-          return prevTiers;
-        });
-        setITiles((prevTiles) => {
-          prevTiles = prevTiles.filter(
-            (prevTile) => prevTile.id !== dragTile.id
-          );
-          if (delta <= 0) {
-            prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
-          } else {
-            prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
-          }
-          return prevTiles;
-        });
-      } else {
-        //Executed when a tier-less tile is dragged on top of another tier-less tile.
-        setITiles((prevTiles) => {
-          prevTiles = prevTiles.filter(
-            (prevTile) => prevTile.id !== dragTile.id
-          );
-          if (delta <= 0) {
-            prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
-          } else {
-            prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
-          }
-          return prevTiles;
-        });
-      }
-    }
+    dispatch(
+      mutateTiles({
+        delta,
+        originParentTier: dragTileTier,
+        originTile: dragTile,
+        destinationParentTier: tier ? tier : null,
+        destinationTile: tile,
+      })
+    );
   }
 
   function handleTouchDrop(e: React.PointerEvent<HTMLElement>) {
     const delta = calculateTileDelta(e);
     const dragTile = tilesContext?.dragTile;
+    dispatch;
     if (dragTile) {
-      if (delta <= 0) {
-        setITiles((prevTiles) => {
-          prevTiles = prevTiles.filter(
-            (prevTile) => prevTile.id !== dragTile.id
-          );
-          prevTiles.splice(prevTiles.indexOf(tile), 0, dragTile);
-          return [...prevTiles];
-        });
-      } else {
-        setITiles((prevTiles) => {
-          prevTiles = prevTiles.filter(
-            (prevTile) => prevTile.id !== dragTile.id
-          );
-          prevTiles.splice(prevTiles.indexOf(tile) + 1, 0, dragTile);
-          return [...prevTiles];
-        });
-      }
+      dispatch(
+        positionTileInTiles({
+          delta,
+          destinationTile: tile,
+          originTile: dragTile,
+        })
+      );
     }
   }
 
   function releasePointer(e: React.PointerEvent<HTMLLIElement>) {
     // console.log("Release");
     e.currentTarget.releasePointerCapture(e.pointerId);
-  }
-
-  function setPointer(e: React.PointerEvent<HTMLLIElement>) {
-    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function createShadow(e: React.PointerEvent<HTMLLIElement>) {
@@ -234,16 +138,20 @@ const Tile = ({
     document.body.append(dragShadow);
   }
 
-  function moveShadow(e: React.PointerEvent<HTMLLIElement>) {
-    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
-    if (dragShadow === null) return;
-    dragShadow.style.top = `${e.pageY - pointerPosition.current.top}px`;
-    dragShadow.style.left = `${e.pageX - pointerPosition.current.left}px`;
+  /**
+   * Dispatch functions
+   */
+
+  function dispatchRemoveTileFromTier() {
+    if (tier) {
+      dispatch(
+        removeTierChild({ parentTierTitle: tier.title, childTile: tile })
+      );
+    }
   }
 
-  function removeShadow(e: React.PointerEvent<HTMLLIElement>) {
-    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
-    dragShadow?.remove();
+  function dispatchRemoveTileFromTiles() {
+    dispatch(removeTileFromTiles(tile.id));
   }
 
   /**
@@ -304,14 +212,13 @@ const Tile = ({
       e.clientY
     );
 
-    removeShadow(e);
     isTouchDragging.current = false;
 
     if (tier && isOutsideTiers) {
       console.log("Is outside tiers");
-      removeTileFromTier(tile.id, tier);
+      dispatchRemoveTileFromTier();
     } else if (!tier && isOutsideTiles) {
-      removeTileFromTiles(tile.id);
+      dispatchRemoveTileFromTiles();
     }
 
     if (!isTouchDragging.current && tilesContext?.dragTile?.id !== tile.id) {
@@ -353,12 +260,11 @@ const Tile = ({
       e.clientY
     );
 
-    if (isOutsideTiers && tier) removeTileFromTier(tile.id, tier);
-    else if (isOutsideTiles && isOutsideTiers && !tier) {
-      setITiles((prevTiles) =>
-        prevTiles.filter((prevTile) => prevTile.id !== tile.id)
-      );
-    }
+    if (isOutsideTiers && tier) dispatchRemoveTileFromTier();
+    // else if (isOutsideTiles && isOutsideTiers && !tier)
+    //   removeTileFromTiles(tile.id);
+    else if (isOutsideTiles && isOutsideTiers && !tier)
+      dispatchRemoveTileFromTiles();
     e.currentTarget.style.opacity = "";
   }
 
@@ -393,10 +299,6 @@ const Tile = ({
       onPointerOverCapture={pointerOver}
       onPointerCancel={pointerCancel}
       onPointerLeave={pointerLeave}
-      onGotPointerCapture={() => console.log("Got pointer capture", tile.name)}
-      onLostPointerCapture={() =>
-        console.log("Lost pointer capture", tile.name)
-      }
       draggable
       style={{
         backgroundImage: tile.imageUrl ? tile.imageUrl : "",
