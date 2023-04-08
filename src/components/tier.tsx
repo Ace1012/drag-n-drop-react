@@ -233,6 +233,10 @@ const Tier = ({
     }
   }
 
+  function handleMobileDraggable(e: React.PointerEvent<HTMLElement>){
+
+  }
+
   function handleDraggable(e: React.MouseEvent<HTMLElement, MouseEvent>) {
     if (e.type === "mouseenter") {
       setIsDraggingThisTier(true);
@@ -386,8 +390,8 @@ const Tier = ({
         onMouseEnter={(e) => handleDraggable(e)}
         onMouseLeave={(e) => handleDraggable(e)}
         // onPointerDown={(e) => console.log("pointerdown")}
-        onPointerDown={(e) => handleDraggable(e)}
-        onPointerUp={(e) => handleDraggable(e)}
+        onPointerDown={(e) => handleMobileDraggable(e)}
+        onPointerUp={(e) => handleMobileDraggable(e)}
         onDragLeave={(e) => e.stopPropagation()}
       >
         <span>{tier.title}</span>

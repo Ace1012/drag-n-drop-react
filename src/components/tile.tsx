@@ -1,12 +1,13 @@
 import { useContext, useRef } from "react";
 import { ITier, ITile } from "../App";
-import { TileMobileDragEvents } from "../contexts/drag-contexts";
-import { useDispatch } from "react-redux/es/exports";
+import { useDispatch, useSelector } from "react-redux/es/exports";
 import {
   removeTierChild,
   removeTileFromTiles,
   mutateTiles,
   positionTileInTiles,
+  selectIsDragging,
+  setDragTile,
 } from "../store/useStore";
 
 interface TileProps {
@@ -38,7 +39,8 @@ TileProps) => {
   });
   const isTouchDragging = useRef(false);
 
-  const tilesContext = useContext(TileMobileDragEvents);
+  // const tilesContext = useContext(TileMobileDragEvents);
+  const tilesContext = useSelector(selectIsDragging);
 
   const dispatch = useDispatch();
 
@@ -169,10 +171,16 @@ TileProps) => {
         left: e.clientX - rect.left,
       };
       pointerPosition.current = offsets;
-      tilesContext?.setDragTile({
-        ...tile,
-        offsets: pointerPosition.current,
-      });
+      // tilesContext?.setDragTile({
+      //   ...tile,
+      //   offsets: pointerPosition.current,
+      // });
+      dispatch(
+        setDragTile({
+          ...tile,
+          offsets: pointerPosition.current,
+        })
+      );
       // e.currentTarget.style.opacity = "0.5";
       tileRef.current!.style.opacity = "0.5";
       releasePointer(e);
@@ -221,10 +229,12 @@ TileProps) => {
       dispatchRemoveTileFromTiles();
     }
 
+    // if (!isTouchDragging.current && tilesContext?.dragTile?.id !== tile.id) {
     if (!isTouchDragging.current && tilesContext?.dragTile?.id !== tile.id) {
       if (tilesContext?.dragTile) {
         handleTouchDrop(e);
-        tilesContext?.setDragTile(null);
+        // tilesContext?.setDragTile(null);
+        dispatch(setDragTile(null));
         e.currentTarget.style.opacity = "";
       }
     }

@@ -1,12 +1,6 @@
-import React, { useEffect, useReducer, useRef, useState } from "react";
-import { v4 as uuid } from "uuid";
+import React, { useEffect, useRef, useState } from "react";
 import UseSnackbar from "./components/useSnackbar";
 import { ntc } from "./NameThatColor/NameThatColor";
-import {
-  IDragTile,
-  TierMobileDragEvents,
-  TileMobileDragEvents,
-} from "./contexts/drag-contexts";
 import TierSection from "./components/tierSection";
 import TileSection from "./components/tileSection";
 import MobileWarning from "./components/mobileWarning";
@@ -15,8 +9,10 @@ import { useSelector, useDispatch } from "react-redux/es/exports";
 import {
   removeTierChild,
   removeTileFromTiles,
+  selectIsDragging,
   selectTiers,
   selectTiles,
+  setDragTile,
 } from "./store/useStore";
 
 export interface ColorPreset {
@@ -52,14 +48,15 @@ function App() {
 
   const tiers = useSelector(selectTiers);
   const tiles = useSelector(selectTiles);
+  const { dragTier, dragTile } = useSelector(selectIsDragging);
 
   const dispatch = useDispatch();
 
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [revealMobileNav, setRevealMobileNav] = useState(false);
-  const [dragTier, setDragTier] = useState<ITier | null>(null);
-  const [dragTile, setDragTile] = useState<IDragTile | null>(null);
+  // const [dragTier, setDragTier] = useState<ITier | null>(null);
+  // const [dragTile, setDragTile] = useState<IDragTile | null>(null);
 
   // function triggerSnackbar(message: string) {
   //   snackbarMessage.current = message;
@@ -144,7 +141,7 @@ function App() {
     } else if (!dragTile.tier && isOutsideTiles) {
       dispatch(removeTileFromTiles(dragTile.id));
     }
-    setDragTile(null);
+    dispatch(setDragTile(null));
   }
 
   /**
@@ -225,21 +222,17 @@ function App() {
       )} */}
       {isMobile && <MobileWarning setIsMobile={setIsMobile} />}
       <PresetsManagement />
-      <TierMobileDragEvents.Provider value={{ dragTier, setDragTier }}>
-        <TierSection
-          ref={tiersSectionForwardRef}
-          getTilesSectionRect={getTilesSectionRect}
-        />
-      </TierMobileDragEvents.Provider>
+      <TierSection
+        ref={tiersSectionForwardRef}
+        getTilesSectionRect={getTilesSectionRect}
+      />
 
-      <TileMobileDragEvents.Provider value={{ dragTile, setDragTile }}>
-        <TileSection
-          ref={tilesSectionForwardRef}
-          revealMobileNav={revealMobileNav}
-          getTiersSectionRect={getTiersSectionRect}
-          setRevealMobileNav={setRevealMobileNav}
-        />
-      </TileMobileDragEvents.Provider>
+      <TileSection
+        ref={tilesSectionForwardRef}
+        revealMobileNav={revealMobileNav}
+        getTiersSectionRect={getTiersSectionRect}
+        setRevealMobileNav={setRevealMobileNav}
+      />
     </div>
   );
 }
