@@ -27,8 +27,20 @@ const initialTiles: TilesSliceState = {
       name: "A",
     },
     {
-      id: "tilealsbdalkjdblkajdnalkdjns",
+      id: "tilealsbdalkjdybjybjflkdjns",
       name: "B",
+    },
+    {
+      id: "tilealsbdalkfbjbjbkajdnalkdjns",
+      name: "C",
+    },
+    {
+      id: "tilealbfjfbjfbjflkdjns",
+      name: "D",
+    },
+    {
+      id: "tilealsbdalkjdblkzfxbnxnajdnalkdjns",
+      name: "E",
     },
   ],
 };

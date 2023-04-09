@@ -262,7 +262,6 @@ function App() {
     const mobileRegex = /iphone|android|ipad/i;
     if (mobileRegex.test(navigator.userAgent)) {
       const alreadyWarned = Boolean(sessionStorage.getItem("mobile-warning"));
-      console.log(alreadyWarned);
       !alreadyWarned && setIsMobile(true);
       setRevealMobileNav(true);
       console.log("Mobile detected");
