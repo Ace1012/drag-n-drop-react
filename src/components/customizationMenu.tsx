@@ -70,7 +70,7 @@ const CustomizationMenu = forwardRef<
           data-open={isOpen ? "true" : "false"}
           style={{
             boxShadow: `inset 0 0 2em ${tierBackgroundColor}`,
-            top: parentTierTop,
+            top: `${parentTierTop + 50}px`,
             border: `1px solid ${calculateTextColor(tierBackgroundColor)}`,
           }}
           onClick={(e) => e.stopPropagation()}
@@ -89,7 +89,7 @@ const CustomizationMenu = forwardRef<
             onChange={handleNewTitle}
             placeholder="Enter new title"
           />
-          <div>
+          <div className="customization-controls">
             <button type="button" onClick={closeMenu}>
               Cancel
             </button>
