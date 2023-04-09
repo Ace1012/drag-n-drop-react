@@ -347,7 +347,9 @@ option {
   left: 0;
   height: 100dvh;
   width: 100dvw;
+  z-index: 100;
   background-color: rgba(0, 0, 0, 0.212);
+  transition: all ease-in-out 150ms 100ms;
 }
 .customization-menu {
   display: flex;
