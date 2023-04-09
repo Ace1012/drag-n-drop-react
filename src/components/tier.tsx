@@ -40,7 +40,7 @@ interface TierProps {
 
 const Tier = ({
   tier,
-  isPointerHandled,
+  isPointerHandled: isTileDropHandled,
   getTiersSectionRect,
   getTilesSectionRect,
   calculateTextColor,
@@ -323,7 +323,7 @@ const Tier = ({
         if (dragTile.parentTier) {
           if (
             dragTile.parentTier.title !== tier.title &&
-            !isPointerHandled.current
+            !isTileDropHandled.current
           ) {
             console.log("Tier: Transferring tile");
             dispatch(
@@ -334,7 +334,7 @@ const Tier = ({
               })
             );
           }
-        } else {
+        } else if(!isTileDropHandled.current) {
           console.log("Tier: Adding tile");
           dispatch(
             addTileToTier({ destinationTierTitle: tier.title, dragTile })
@@ -512,7 +512,7 @@ const Tier = ({
               getTilesSectionRect={getTilesSectionRect}
               tier={tier}
               tile={tile}
-              isPointerHandled={isPointerHandled}
+              isPointerHandled={isTileDropHandled}
             />
           ))
         ) : (
