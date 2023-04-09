@@ -59,7 +59,7 @@ const CustomizationMenu = forwardRef<
       <div
         className="customization-menu-overlay"
         style={{
-          zIndex: isOpen ? "1000" : "-1",
+          zIndex: isOpen ? "100" : "-1",
           boxShadow: `inset 0 0 1rem 0.5rem ${tierBackgroundColor}`,
         }}
         onClick={closeMenu}
