@@ -59,8 +59,10 @@ const CustomizationMenu = forwardRef<
       <div
         className="customization-menu-overlay"
         style={{
-          zIndex: isOpen ? "100" : "-1",
+          zIndex: isOpen ? "1000" : "-1",
+          boxShadow: `inset 0 0 1rem 0.5rem ${tierBackgroundColor}`,
         }}
+        onClick={closeMenu}
       >
         <form
           className="customization-menu"
@@ -71,6 +73,7 @@ const CustomizationMenu = forwardRef<
             top: parentTierTop,
             border: `1px solid ${calculateTextColor(tierBackgroundColor)}`,
           }}
+          onClick={(e) => e.stopPropagation()}
           onSubmit={handleSubmit}
         >
           <button

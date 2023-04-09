@@ -25,6 +25,10 @@
   border-radius: 8px;
 }
 
+body{
+  min-height: 100lvh;
+  min-width: 100lvw;
+}
 body:has([data-open="true"]) .tiers{
   overflow: hidden;
 }
@@ -597,12 +601,11 @@ option {
     width: 100%;
   }
   .tier-section {
-    height: 60%;
-    padding: 0.2rem;
+    height: 57%;
   }
   .tile-section {
-    height: 40%;
-    padding-bottom: 1rem;
+    height: 43%;
+    padding: 0 1rem;
   }
 
   .tier-section > header,
