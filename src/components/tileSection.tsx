@@ -19,13 +19,22 @@ import {
 } from "../store/useStore";
 
 interface ITileSectionProps {
+  isPointerHandled: React.MutableRefObject<boolean>;
   revealMobileNav: boolean;
   setRevealMobileNav: React.Dispatch<React.SetStateAction<boolean>>;
   getTiersSectionRect: () => DOMRect;
 }
 
 const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
-  ({ revealMobileNav, setRevealMobileNav, getTiersSectionRect }, ref) => {
+  (
+    {
+      revealMobileNav,
+      isPointerHandled,
+      setRevealMobileNav,
+      getTiersSectionRect,
+    },
+    ref
+  ) => {
     const inputTileUrlRef = useRef<HTMLInputElement>(null);
     const inputTileNameRef = useRef<HTMLInputElement>(null);
     const tilesSectionRef = useRef<HTMLDivElement>(null);
@@ -177,33 +186,36 @@ const TileSection = forwardRef<ITileSectionForwardRefProps, ITileSectionProps>(
             </button>
           </div>
         </header>
-        {tiles.length === 0 ? (
+        {/* {tiles.length === 0 ? (
           <div className="no-tiles">No tiles</div>
-        ) : (
-          <ul
-            className="tiles"
-            ref={tilesRef}
-            onPointerDown={() => {
-              if (revealMobileNav) {
-                console.log("Made false");
-                setRevealMobileNav(false);
-              }
-            }}
-            onPointerMove={() => {}}
-          >
-            {revealMobileNav && (
-              <div className="swipe-section">&larr;{` Swipe here `}&rarr;</div>
-            )}
-            {tiles.map((tile) => (
+        ) : ( */}
+        <ul
+          className="tiles"
+          ref={tilesRef}
+          onPointerDown={() => {
+            if (revealMobileNav) {
+              setRevealMobileNav(false);
+            }
+          }}
+        >
+          {revealMobileNav && (
+            <div className="swipe-section">&larr;{` Swipe here `}&rarr;</div>
+          )}
+          {tiles.length === 0 ? (
+            <div className="no-tiles">No tiles</div>
+          ) : (
+            tiles.map((tile) => (
               <Tile
                 key={`${tile.id}`}
                 tile={tile}
+                isPointerHandled={isPointerHandled}
                 getTiersSectionRect={getTiersSectionRect}
                 getTilesSectionRect={getTilesSectionRect}
               />
-            ))}
-          </ul>
-        )}
+            ))
+          )}
+        </ul>
+        {/* )} */}
       </div>
     );
   }

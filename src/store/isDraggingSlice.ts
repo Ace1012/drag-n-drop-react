@@ -4,10 +4,11 @@ import { Offsets } from "../components/tile";
 
 export type IDragTier = {
   aboveOrigin?: boolean;
+  offsets: Offsets;
 } & ITier;
 
 export type IDragTile = {
-  tier?: ITier;
+  parentTier: ITier | null;
   offsets: Offsets;
 } & ITile;
 
@@ -26,9 +27,11 @@ export const isDraggingSlice = createSlice({
   initialState,
   reducers: {
     setDragTier: (state, action: PayloadAction<IDragTier | null>) => {
+      // console.log("Setting dragTier")
       state.dragTier = action.payload;
     },
     setDragTile: (state, action: PayloadAction<IDragTile | null>) => {
+      // console.log("Setting dragTile")
       state.dragTile = action.payload;
     },
   },

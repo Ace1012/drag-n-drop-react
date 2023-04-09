@@ -14,11 +14,12 @@ import { useDispatch, useSelector } from "react-redux/es/exports";
 import { addTier, deleteAllTiers, selectTiers } from "../store/useStore";
 
 interface ITierSectionProps {
+  isPointerHandled: React.MutableRefObject<boolean>;
   getTilesSectionRect: () => DOMRect;
 }
 
 const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
-  ({ getTilesSectionRect }, ref) => {
+  ({ isPointerHandled, getTilesSectionRect }, ref) => {
     const inputTierRef = useRef<HTMLInputElement>(null);
     const tiersSectionRef = useRef<HTMLDivElement>(null);
     const tiersRef = useRef<HTMLUListElement>(null);
@@ -85,22 +86,24 @@ const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
             </button>
           </div>
         </header>
-        {tiers.length === 0 ? (
-          <div className="no-tiers">No tiers</div>
-        ) : (
-          <ul className="tiers" ref={tiersRef}>
-            {tiers.map((iTier) => (
+
+        <ul className="tiers" ref={tiersRef}>
+          {tiers.length === 0 ? (
+            <div className="no-tiers">No tiers</div>
+          ) : (
+            tiers.map((iTier) => (
               <Tier
                 key={`container${uuid()}`}
                 tier={iTier}
+                isPointerHandled={isPointerHandled}
                 getTiersSectionRect={getTiersSectionRect}
                 getTilesSectionRect={getTilesSectionRect}
                 //   triggerSnackbar={triggerSnackbar}
                 children={iTier.children}
               />
-            ))}
-          </ul>
-        )}
+            ))
+          )}
+        </ul>
       </div>
     );
   }

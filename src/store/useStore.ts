@@ -29,6 +29,7 @@ export const {
   transferTile,
   editTitle,
   deleteAllTiers,
+  positionTileInTier,
 } = tiersSlice.actions;
 
 export const {

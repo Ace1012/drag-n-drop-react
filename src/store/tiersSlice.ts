@@ -31,8 +31,39 @@ interface EditTitleParams {
   newTitle: string;
 }
 
+interface IPositionTileInTierParams {
+  originTier: ITier | null;
+  originTile: ITile;
+  destinationTile: ITile;
+  destinationTier: ITier;
+  delta: number;
+}
+
 const initialTiers: TiersSliceState = {
-  tiers: [{ title: "default", children: [] }],
+  tiers: [
+    {
+      title: "default",
+      children: [
+        // {
+        //   id: "tiledkajdbjahkdnaklsdasadada",
+        //   name: "A",
+        // },
+      ],
+    },
+    {
+      title: "default2",
+      children: [
+        {
+          id: "tiledkajdbjahkdnaklsdasadada",
+          name: "A",
+        },
+        {
+          id: "tilealsbdalkjdblkajdnalkdjns",
+          name: "B",
+        },
+      ],
+    },
+  ],
 };
 
 export const tiersSlice = createSlice({
@@ -68,17 +99,11 @@ export const tiersSlice = createSlice({
         const index = children.findIndex(
           ({ id }) => id === destinationTile?.id
         );
-        console.log({ delta, index });
-        console.log();
         if (delta && destinationTile) {
           if (delta <= 0) {
-            console.log([...children]);
             children.splice(index, 0, dragTile);
-            console.log([...children]);
           } else {
-            console.log([...children]);
             children.splice(index + 1, 0, dragTile);
-            console.log([...children]);
           }
         } else {
           destinationTier.children = [...destinationTier.children, dragTile];
@@ -112,7 +137,6 @@ export const tiersSlice = createSlice({
       const index = state.tiers.findIndex(
         ({ title }) => title === destinationTier.title
       );
-      console.log({ index, delta });
       if (delta <= 0) {
         state.tiers.splice(index, 0, originTier);
       } else {
@@ -125,7 +149,6 @@ export const tiersSlice = createSlice({
         payload: { tile, originTier, destinationTier },
       }: PayloadAction<TransferTileParams>
     ) => {
-      console.log("Transferring tile!!!");
       const origin = state.tiers.find(
         ({ title }) => title === originTier.title
       );
@@ -133,12 +156,14 @@ export const tiersSlice = createSlice({
         ({ title }) => title === destinationTier.title
       );
 
-      if (origin) {
-        origin.children = origin.children.filter(({ id }) => id !== tile.id);
-      }
+      if (origin && destination) {
+        if (origin.title !== destination.title) {
+          console.log(`Removing from: ${origin.title}`);
+          origin.children = origin.children.filter(({ id }) => id !== tile.id);
 
-      if (destination) {
-        destination.children = [...destination.children, tile];
+          console.log(`Adding to: ${destination.title}`);
+          destination.children = [...destination.children, tile];
+        }
       }
     },
     editTitle: (
@@ -149,6 +174,53 @@ export const tiersSlice = createSlice({
 
       if (tier) {
         tier.title = newTitle;
+      }
+    },
+    positionTileInTier: (
+      state,
+      {
+        payload: {
+          originTier,
+          originTile,
+          destinationTier,
+          destinationTile,
+          delta,
+        },
+      }: PayloadAction<IPositionTileInTierParams>
+    ) => {
+      /**
+       * Remove tile from previous parent if exists
+       */
+      if (originTier) {
+        console.log(`Removing from ${originTier.title}`);
+        const oldParentTier = state.tiers.find(
+          ({ title }) => title === originTier.title
+        );
+        if (oldParentTier) {
+          oldParentTier.children = oldParentTier.children.filter(({ id }) => {
+            return id !== originTile.id;
+          });
+          console.log(oldParentTier.children.length);
+        }
+      }
+
+      const tier = state.tiers.find(
+        ({ title }) => title === destinationTier.title
+      );
+
+      if (tier) {
+        tier.children = destinationTier.children.filter(
+          ({ id }) => id !== originTile.id
+        );
+        const index = destinationTier.children.findIndex(
+          ({ id }) => id === destinationTile.id
+        );
+
+        if (delta <= 0) {
+          tier.children.splice(index, 0, originTile);
+        } else {
+          tier.children.splice(index + 1, 0, originTile);
+        }
       }
     },
   },
@@ -186,24 +258,27 @@ export const tiersSlice = createSlice({
               }
             }
           }
-        } else if (originParentTier) {
-          tiersSlice.caseReducers.removeTierChild(state, {
-            payload: {
-              parentTierTitle: originParentTier.title,
-              childTile: originTile,
-            },
-            type,
-          });
-        } else if (destinationParentTier) {
-          tiersSlice.caseReducers.addTileToTier(state, {
-            type,
-            payload: {
-              dragTile: originTile,
-              destinationTile: destinationTile,
-              destinationTierTitle: destinationParentTier.title,
-              delta: delta ? delta : undefined,
-            },
-          });
+        } else {
+          if (originParentTier) {
+            tiersSlice.caseReducers.removeTierChild(state, {
+              payload: {
+                parentTierTitle: originParentTier.title,
+                childTile: originTile,
+              },
+              type,
+            });
+          }
+          if (destinationParentTier) {
+            tiersSlice.caseReducers.addTileToTier(state, {
+              type,
+              payload: {
+                dragTile: originTile,
+                destinationTile: destinationTile,
+                destinationTierTitle: destinationParentTier.title,
+                delta: delta ? delta : undefined,
+              },
+            });
+          }
         }
       }
     );

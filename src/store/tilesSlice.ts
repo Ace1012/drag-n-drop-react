@@ -6,11 +6,6 @@ export interface TilesSliceState {
   tiles: ITile[];
 }
 
-interface RemoveTileFromTierParams {
-  parentTier: ITier;
-  tile: ITile;
-}
-
 interface MutateTilesParams {
   originTile: ITile;
   destinationTile: ITile;
@@ -27,14 +22,14 @@ interface PositionTilesParams {
 
 const initialTiles: TilesSliceState = {
   tiles: [
-    {
-      id: "tiledkajdbjahkdnaklsdasadada",
-      name: "A",
-    },
-    {
-      id: "tilealsbdalkjdblkajdnalkdjns",
-      name: "B",
-    },
+    // {
+    //   id: "tiledkajdbjahkdnaklsdasadada",
+    //   name: "A",
+    // },
+    // {
+    //   id: "tilealsbdalkjdblkajdnalkdjns",
+    //   name: "B",
+    // },
   ],
 };
 
@@ -64,7 +59,8 @@ export const tilesSlice = createSlice({
         payload: { originTile, destinationTile, delta },
       }: PayloadAction<PositionTilesParams>
     ) => {
-      state.tiles = [...state.tiles.filter(({ id }) => id !== originTile.id)];
+      // console.log("################Adding tile(s)")
+      state.tiles = state.tiles.filter(({ id }) => id !== originTile.id);
       const index = state.tiles.findIndex(
         ({ id }) => id === destinationTile.id
       );
@@ -130,7 +126,6 @@ export const tilesSlice = createSlice({
       })
       .addCase(tiersSlice.actions.removeTierChild, (state, action) => {
         const tile = action.payload.childTile;
-        console.log(tile);
         if (tile) {
           tilesSlice.caseReducers.addTiles(state, {
             payload: tile,

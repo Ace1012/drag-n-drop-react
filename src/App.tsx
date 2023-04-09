@@ -12,6 +12,7 @@ import {
   selectIsDragging,
   selectTiers,
   selectTiles,
+  setDragTier,
   setDragTile,
 } from "./store/useStore";
 
@@ -44,6 +45,7 @@ function App() {
   const appRef = useRef<HTMLDivElement>(null);
   const tiersSectionForwardRef = useRef<ITierSectionForwardRefProps>(null);
   const tilesSectionForwardRef = useRef<ITileSectionForwardRefProps>(null);
+  const isPointerHandled = useRef(false);
   const snackbarMessage = useRef("Drag tiles out of grey zone to remove");
 
   const tiers = useSelector(selectTiers);
@@ -55,8 +57,6 @@ function App() {
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [revealMobileNav, setRevealMobileNav] = useState(false);
-  // const [dragTier, setDragTier] = useState<ITier | null>(null);
-  // const [dragTile, setDragTile] = useState<IDragTile | null>(null);
 
   // function triggerSnackbar(message: string) {
   //   snackbarMessage.current = message;
@@ -70,12 +70,22 @@ function App() {
    * @returns
    */
   function positionShadow(e: React.PointerEvent) {
-    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
-    if (dragShadow === null || dragTile === null) return;
-    // dragShadow.style.top = `${e.pageY - pointerPosition.top}px`;
-    // dragShadow.style.left = `${e.pageX - pointerPosition.left}px`;
-    dragShadow.style.top = `${e.pageY - dragTile.offsets.top}px`;
-    dragShadow.style.left = `${e.pageX - dragTile.offsets.left}px`;
+    if (e.pointerType !== "mouse") {
+      if (dragTier) {
+        const dragShadow = document.getElementById(
+          `tier-shadow${dragTier.title}`
+        );
+        if (!dragShadow) return;
+        dragShadow.style.top = `${e.pageY - dragTier.offsets.top}px`;
+        dragShadow.style.left = `${e.pageX - dragTier.offsets.left}px`;
+      } else if (dragTile) {
+        console.log("Moving tile");
+        const dragShadow = document.getElementById(`tile-shadow${dragTile.id}`);
+        if (!dragShadow) return;
+        dragShadow.style.top = `${e.pageY - dragTile.offsets.top}px`;
+        dragShadow.style.left = `${e.pageX - dragTile.offsets.left}px`;
+      }
+    }
   }
 
   /**
@@ -84,8 +94,31 @@ function App() {
    * @param e
    */
   function removeShadow(e: React.PointerEvent) {
-    const dragShadow = document.getElementById(`tile-shadow${e.pointerId}`);
-    dragShadow?.remove();
+    if (e.pointerType !== "mouse") {
+      if (dragTier) {
+        console.log("Removing tier-shadow");
+        document.getElementById(`tier-shadow${dragTier.title}`)?.remove();
+        dispatch(setDragTier(null));
+      } else if (dragTile) {
+        console.log("Removing tile-shadow");
+        document.getElementById(`tile-shadow${dragTile.id}`)?.remove();
+        const { isOutsideTiers, isOutsideTiles } = isOutsideDropAreaMobile(
+          e.clientX,
+          e.clientY
+        );
+        if (dragTile.parentTier && isOutsideTiers) {
+          dispatch(
+            removeTierChild({
+              childTile: dragTile,
+              parentTierTitle: dragTile.parentTier.title,
+            })
+          );
+        } else if (!dragTile.parentTier && isOutsideTiles) {
+          dispatch(removeTileFromTiles(dragTile.id));
+        }
+        dispatch(setDragTile(null));
+      }
+    }
   }
 
   /**
@@ -125,23 +158,10 @@ function App() {
    * @returns
    */
   function handlePointerUp(e: React.PointerEvent) {
-    if (!dragTile) return;
-    const { isOutsideTiers, isOutsideTiles } = isOutsideDropAreaMobile(
-      e.clientX,
-      e.clientY
-    );
-    removeShadow(e);
-    if (dragTile.tier && isOutsideTiers) {
-      dispatch(
-        removeTierChild({
-          childTile: dragTile,
-          parentTierTitle: dragTile.tier.title,
-        })
-      );
-    } else if (!dragTile.tier && isOutsideTiles) {
-      dispatch(removeTileFromTiles(dragTile.id));
+    if (e.pointerType !== "mouse") {
+      removeShadow(e);
+      isPointerHandled.current = false;
     }
-    dispatch(setDragTile(null));
   }
 
   /**
@@ -191,14 +211,14 @@ function App() {
   /**
    * Checks whether on mobile to display warning
    */
-  useEffect(() => {
-    const mobileRegex = /iphone|android|ipad/i;
-    if (mobileRegex.test(navigator.userAgent)) {
-      setIsMobile(true);
-      setRevealMobileNav(true);
-      console.log("Mobile detected");
-    }
-  }, []);
+  // useEffect(() => {
+  //   const mobileRegex = /iphone|android|ipad/i;
+  //   if (mobileRegex.test(navigator.userAgent)) {
+  //     setIsMobile(true);
+  //     setRevealMobileNav(true);
+  //     console.log("Mobile detected");
+  //   }
+  // }, []);
 
   return (
     <div
@@ -224,11 +244,13 @@ function App() {
       <PresetsManagement />
       <TierSection
         ref={tiersSectionForwardRef}
+        isPointerHandled={isPointerHandled}
         getTilesSectionRect={getTilesSectionRect}
       />
 
       <TileSection
         ref={tilesSectionForwardRef}
+        isPointerHandled={isPointerHandled}
         revealMobileNav={revealMobileNav}
         getTiersSectionRect={getTiersSectionRect}
         setRevealMobileNav={setRevealMobileNav}

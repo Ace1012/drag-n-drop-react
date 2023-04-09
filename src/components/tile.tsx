@@ -8,15 +8,15 @@ import {
   positionTileInTiles,
   selectIsDragging,
   setDragTile,
+  positionTileInTier,
 } from "../store/useStore";
 
 interface TileProps {
   tile: ITile;
   tier?: ITier;
+  isPointerHandled: React.MutableRefObject<boolean>;
   getTiersSectionRect: () => DOMRect;
   getTilesSectionRect: () => DOMRect;
-  // removeTileFromTier(tileId: string, parentTier: ITier): void;
-  // removeTileFromTiles(tileId: string): void;
 }
 
 export interface Offsets {
@@ -27,20 +27,14 @@ export interface Offsets {
 const Tile = ({
   tile,
   tier,
+  isPointerHandled,
   getTiersSectionRect,
   getTilesSectionRect,
-}: // removeTileFromTier,
-// removeTileFromTiles,
-TileProps) => {
+}: TileProps) => {
   const tileRef = useRef<HTMLLIElement>(null);
-  const pointerPosition = useRef<Offsets>({
-    left: 0,
-    top: 0,
-  });
-  const isTouchDragging = useRef(false);
+  // const isTouchDragging = useRef(false);
 
-  // const tilesContext = useContext(TileMobileDragEvents);
-  const tilesContext = useSelector(selectIsDragging);
+  const { dragTier, dragTile } = useSelector(selectIsDragging);
 
   const dispatch = useDispatch();
 
@@ -92,14 +86,28 @@ TileProps) => {
 
   function handleTouchDrop(e: React.PointerEvent<HTMLElement>) {
     const delta = calculateTileDelta(e);
-    const dragTile = tilesContext?.dragTile;
-    dispatch;
-    if (dragTile) {
+    /**
+     * Case 1: Dragging any tile onto an orphan tile
+     * NB: Must have no parent tier indicating this tile is in the tiles section.
+     */
+    if (dragTile && !tier) {
       dispatch(
         positionTileInTiles({
           delta,
           destinationTile: tile,
           originTile: dragTile,
+        })
+      );
+    } else if (dragTile && tier) {
+      console.log("Tile: Transferring tile");
+      isPointerHandled.current = true;
+      dispatch(
+        positionTileInTier({
+          delta,
+          originTier: dragTile.parentTier,
+          originTile: dragTile,
+          destinationTier: tier,
+          destinationTile: tile,
         })
       );
     }
@@ -110,29 +118,31 @@ TileProps) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
   }
 
-  function createShadow(e: React.PointerEvent<HTMLLIElement>) {
+  function createTileShadow(e: React.PointerEvent<HTMLLIElement>) {
     const rect = tileRef.current!.getBoundingClientRect();
     const offsets: Offsets = {
       top: e.clientY - rect.top,
       left: e.clientX - rect.left,
     };
-    pointerPosition.current = offsets;
+
+    dispatch(
+      setDragTile({
+        ...tile,
+        offsets: offsets,
+        parentTier: tier ? tier : null,
+      })
+    );
+
     const dragShadow = document.createElement("li");
     dragShadow.innerHTML = tileRef.current!.innerHTML;
-    dragShadow.id = `tile-shadow${e.pointerId}`;
+    dragShadow.id = `tile-shadow${tile.id}`;
     dragShadow.classList.add("tile-container");
     dragShadow.style.position = "absolute";
-    dragShadow.style.pointerEvents = "none";
-    dragShadow.style.minWidth = `50px`;
-    // dragShadow.style.width = `50px`;
-    // dragShadow.style.height = `50px`;
-    dragShadow.style.width = `${rect.width}px`;
-    dragShadow.style.height = `${rect.height}px`;
-    // dragShadow.style.padding = "1rem"
     dragShadow.style.top = `${e.pageY - offsets.top}px`;
     dragShadow.style.left = `${e.pageX - offsets.left}px`;
-    // dragShadow.style.top = `${e.pageY - 50}px`;
-    // dragShadow.style.left = `${e.pageX + 5}px`;
+    dragShadow.style.pointerEvents = "none";
+    dragShadow.style.width = `${rect.width}px`;
+    dragShadow.style.height = `${rect.height}px`;
     tile.imageUrl
       ? (dragShadow.style.backgroundImage = tile.imageUrl)
       : (dragShadow.style.backgroundColor = "lightgrey");
@@ -162,78 +172,19 @@ TileProps) => {
 
   function pointerDown(e: React.PointerEvent<HTMLLIElement>) {
     if (e.pointerType !== "mouse") {
-      // e.preventDefault();
-      console.log(`Pointer down: ${tile.name}`);
-      isTouchDragging.current = true;
-      const rect = tileRef.current!.getBoundingClientRect();
-      const offsets: Offsets = {
-        top: e.clientY - rect.top,
-        left: e.clientX - rect.left,
-      };
-      pointerPosition.current = offsets;
-      // tilesContext?.setDragTile({
-      //   ...tile,
-      //   offsets: pointerPosition.current,
-      // });
-      dispatch(
-        setDragTile({
-          ...tile,
-          offsets: pointerPosition.current,
-        })
-      );
-      // e.currentTarget.style.opacity = "0.5";
+      // console.log(`Pointer down: ${tile.name}`);
+      // isTouchDragging.current = true;
+
       tileRef.current!.style.opacity = "0.5";
       releasePointer(e);
-      // console.log("Pointer down: ", tile.name);
-      createShadow(e);
+      createTileShadow(e);
     }
-  }
-
-  function pointerMove(e: React.PointerEvent<HTMLLIElement>) {
-    if (e.pointerType !== "mouse") {
-      // console.log("Moving");
-      // e.preventDefault();
-      // console.log(offsets);
-      // console.log(e.pointerId);
-      // moveShadow(e);
-    }
-  }
-
-  function pointerOver(e: React.PointerEvent<HTMLLIElement>) {
-    e.stopPropagation();
-    if (e.pointerType === "mouse" && !isTouchDragging.current) return;
-    // setTimeout(() => {
-    //   console.log(
-    //     `Pointer over ${tile.name}\nisDragging = ${isTouchDragging.current}`
-    //   );
-    // }, 100);
   }
 
   function pointerUp(e: React.PointerEvent<HTMLLIElement>) {
-    /**
-     * isTouchDragging is set to false here to address any previous dragging attempts
-     * that left it "hanging" as true. This is to ensure only the current dragged tile
-     * will execute the functionality behind being dragged.
-     */
-    const { isOutsideTiers, isOutsideTiles } = isOutsideDropArea(
-      e.clientX,
-      e.clientY
-    );
-
-    isTouchDragging.current = false;
-
-    if (tier && isOutsideTiers) {
-      console.log("Is outside tiers");
-      dispatchRemoveTileFromTier();
-    } else if (!tier && isOutsideTiles) {
-      dispatchRemoveTileFromTiles();
-    }
-
-    // if (!isTouchDragging.current && tilesContext?.dragTile?.id !== tile.id) {
-    if (!isTouchDragging.current && tilesContext?.dragTile?.id !== tile.id) {
-      if (tilesContext?.dragTile) {
+    if (e.pointerType !== "mouse") {
+      if (dragTile && dragTile.id !== tile.id) {
         handleTouchDrop(e);
-        // tilesContext?.setDragTile(null);
         dispatch(setDragTile(null));
         e.currentTarget.style.opacity = "";
       }
@@ -247,8 +198,9 @@ TileProps) => {
   }
 
   function pointerLeave(e: React.PointerEvent<HTMLLIElement>) {
-    // console.log(`Leaving##########`)
-    e.currentTarget.style.opacity = "";
+    if (e.pointerType !== "mouse") {
+      e.currentTarget.style.opacity = "";
+    }
   }
 
   /**
@@ -260,7 +212,6 @@ TileProps) => {
     e.dataTransfer.setData("tile", JSON.stringify(tile));
     tier && e.dataTransfer.setData("tile-tier", JSON.stringify(tier));
     e.currentTarget.style.opacity = "0.5";
-    console.log(e.dataTransfer);
   }
 
   function onDragEnd(e: React.DragEvent<HTMLLIElement>) {
@@ -271,8 +222,6 @@ TileProps) => {
     );
 
     if (isOutsideTiers && tier) dispatchRemoveTileFromTier();
-    // else if (isOutsideTiles && isOutsideTiers && !tier)
-    //   removeTileFromTiles(tile.id);
     else if (isOutsideTiles && isOutsideTiers && !tier)
       dispatchRemoveTileFromTiles();
     e.currentTarget.style.opacity = "";
@@ -299,14 +248,13 @@ TileProps) => {
       ref={tileRef}
       data-dragging="false"
       data-position={`${!tier ? "has-tier" : ""}`}
+      data-long-entry={tile.name && tile.name?.length > 65 ? "true" : ""}
       onDragStart={(e) => dragStart(e)}
       onDragEnd={(e) => onDragEnd(e)}
       onDragOver={(e) => onDragOver(e)}
       onDrop={onDrop}
       onPointerDown={pointerDown}
       onPointerUp={pointerUp}
-      onPointerMove={pointerMove}
-      onPointerOverCapture={pointerOver}
       onPointerCancel={pointerCancel}
       onPointerLeave={pointerLeave}
       draggable
