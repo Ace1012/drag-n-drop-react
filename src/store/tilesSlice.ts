@@ -22,14 +22,14 @@ interface PositionTilesParams {
 
 const initialTiles: TilesSliceState = {
   tiles: [
-    // {
-    //   id: "tiledkajdbjahkdnaklsdasadada",
-    //   name: "A",
-    // },
-    // {
-    //   id: "tilealsbdalkjdblkajdnalkdjns",
-    //   name: "B",
-    // },
+    {
+      id: "tiledkajdbjahkdnaklsdasadada",
+      name: "A",
+    },
+    {
+      id: "tilealsbdalkjdblkajdnalkdjns",
+      name: "B",
+    },
   ],
 };
 

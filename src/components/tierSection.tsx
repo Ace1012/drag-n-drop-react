@@ -16,10 +16,11 @@ import { addTier, deleteAllTiers, selectTiers } from "../store/useStore";
 interface ITierSectionProps {
   isPointerHandled: React.MutableRefObject<boolean>;
   getTilesSectionRect: () => DOMRect;
+  calculateTextColor(hex: string): "#000000" | "#FFFFFF";
 }
 
 const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
-  ({ isPointerHandled, getTilesSectionRect }, ref) => {
+  ({ isPointerHandled, getTilesSectionRect, calculateTextColor }, ref) => {
     const inputTierRef = useRef<HTMLInputElement>(null);
     const tiersSectionRef = useRef<HTMLDivElement>(null);
     const tiersRef = useRef<HTMLUListElement>(null);
@@ -95,6 +96,7 @@ const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
               <Tier
                 key={`container${uuid()}`}
                 tier={iTier}
+                calculateTextColor={calculateTextColor}
                 isPointerHandled={isPointerHandled}
                 getTiersSectionRect={getTiersSectionRect}
                 getTilesSectionRect={getTilesSectionRect}

@@ -50,19 +50,19 @@ const initialTiers: TiersSliceState = {
         // },
       ],
     },
-    {
-      title: "default2",
-      children: [
-        {
-          id: "tiledkajdbjahkdnaklsdasadada",
-          name: "A",
-        },
-        {
-          id: "tilealsbdalkjdblkajdnalkdjns",
-          name: "B",
-        },
-      ],
-    },
+    // {
+    //   title: "default2",
+    //   children: [
+    //     {
+    //       id: "tiledkajdbjahkdnaklsdasadada",
+    //       name: "A",
+    //     },
+    //     {
+    //       id: "tilealsbdalkjdblkajdnalkdjns",
+    //       name: "B",
+    //     },
+    //   ],
+    // },
   ],
 };
 

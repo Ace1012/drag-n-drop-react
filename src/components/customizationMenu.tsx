@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { ntc } from "../NameThatColor/NameThatColor";
+import ReactDOM from "react-dom";
 
 export interface HandleCustomizationMenuProps {
   editMenuOpacity: (value: string) => void;
@@ -10,9 +11,12 @@ export interface HandleCustomizationMenuProps {
 interface CustomizationMenuProps {
   tierBackgroundColor: string;
   openColorPicker: boolean;
+  parentTierTop: number;
+  isOpen: boolean;
   setOpenColorPicker: React.Dispatch<React.SetStateAction<boolean>>;
   handleSubmit(e: React.FormEvent): void;
   handleNewTitle(e: React.ChangeEvent<HTMLInputElement>): void;
+  calculateTextColor(hex: string): "#000000" | "#FFFFFF";
   closeMenu(): void;
 }
 
@@ -22,11 +26,14 @@ const CustomizationMenu = forwardRef<
 >(
   (
     {
+      parentTierTop,
       tierBackgroundColor,
       openColorPicker,
+      isOpen,
       setOpenColorPicker,
       handleSubmit,
       handleNewTitle,
+      calculateTextColor,
       closeMenu,
     },
     ref
@@ -48,50 +55,46 @@ const CustomizationMenu = forwardRef<
       };
     });
 
-    // function setInputPlaceholderColor(e: React.MouseEvent<HTMLInputElement>) {
-    //   if (e.type === "mouseover") {
-    //     newTitleInputRef.current!.classList.add(
-    //       `${ntc.name(tierBackgroundColor.substring(1))[1].replace(/\s+/g, "")}`
-    //     );
-    //   }
-    //   if (e.type === "mouseleave") {
-    //     newTitleInputRef.current!.classList.remove(
-    //       `${ntc.name(tierBackgroundColor.substring(1))[1].replace(/\s+/g, "")}`
-    //     );
-    //   }
-    // }
-
-    return (
-      <form
-        ref={customizationMenuRef}
+    return ReactDOM.createPortal(
+      <div
+        className="customization-menu-overlay"
         style={{
-          boxShadow: `inset 0 0 1em ${tierBackgroundColor}`
+          zIndex: isOpen ? "100" : "-1",
         }}
-        onSubmit={handleSubmit}
-        className="customization-menu"
       >
-        <button
-          className="color-picker-toggler"
-          disabled={openColorPicker}
-          onClick={() => setOpenColorPicker(true)}
+        <form
+          className="customization-menu"
+          ref={customizationMenuRef}
+          data-open={isOpen ? "true" : "false"}
+          style={{
+            boxShadow: `inset 0 0 2em ${tierBackgroundColor}`,
+            top: parentTierTop,
+            border: `1px solid ${calculateTextColor(tierBackgroundColor)}`,
+          }}
+          onSubmit={handleSubmit}
         >
-          Pick a color
-        </button>
-        <input
-          type="text"
-          ref={newTitleInputRef}
-          // onMouseOver={setInputPlaceholderColor}
-          // onMouseLeave={setInputPlaceholderColor}
-          onChange={handleNewTitle}
-          placeholder="Enter new title"
-        />
-        <div>
-          <button type="button" onClick={closeMenu}>
-            Cancel
+          <button
+            className="color-picker-toggler"
+            disabled={openColorPicker}
+            onClick={() => setOpenColorPicker(true)}
+          >
+            Pick a color
           </button>
-          <button type="submit">Save</button>
-        </div>
-      </form>
+          <input
+            type="text"
+            ref={newTitleInputRef}
+            onChange={handleNewTitle}
+            placeholder="Enter new title"
+          />
+          <div>
+            <button type="button" onClick={closeMenu}>
+              Cancel
+            </button>
+            <button type="submit">Save</button>
+          </div>
+        </form>
+      </div>,
+      document.getElementById("portal")!
     );
   }
 );

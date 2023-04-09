@@ -24,11 +24,9 @@
   border: 1px solid black;
   border-radius: 8px;
 }
-::-webkit-scrollbar-track:hover {
-  background: white;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: grey;
+
+body:has([data-open="true"]) .tiers{
+  overflow: hidden;
 }
 
 button {
@@ -40,10 +38,6 @@ button {
   border-radius: 10px;
   opacity: 0.7;
   transition: all ease-in-out 150ms;
-}
-button:not(:disabled):hover {
-  opacity: 1;
-  border: 1px solid black;
 }
 button:not(:disabled):active {
   transform: translateY(1px);
@@ -170,7 +164,7 @@ option {
 .tiers {
   position: relative;
   background-color: rgb(133, 133, 133);
-  background-color: #292929;
+  background-color: transparent;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -217,15 +211,6 @@ option {
   border-radius: 50%;
   border: 1px solid white;
   transition: all ease-in-out 150ms;
-}
-.save-presets:hover,
-.load-presets:hover {
-  color: #212121;
-  translate: 0 -5px;
-  box-shadow: none;
-  border: 1px solid black;
-  border-radius: 8px;
-  background-color: white;
 }
 .save-presets:active {
   box-shadow: inset 8px 8px 10px black;
@@ -274,9 +259,9 @@ option {
   color: white;
   transition: all ease-in-out 150ms;
 }
-.close-drag-area:hover {
+/* .close-drag-area:hover {
   scale: 1.5;
-}
+} */
 
 .controls {
   display: flex;
@@ -343,15 +328,11 @@ option {
   transition: all ease-in-out 350ms;
 }
 
-.footer-icon:hover {
-  color: white !important;
-}
-
 .cog-clicked {
   transform: rotate(90deg);
 }
 
-.customization-overlay {
+.customization-menu-overlay {
   position: fixed;
   top: 0;
   right: 0;
@@ -359,43 +340,46 @@ option {
   left: 0;
   height: 100vh;
   width: 100vw;
-  background-color: black;
+  background-color: rgba(0, 0, 0, 0.212);
   display: flex;
   justify-content: center;
   align-items: center;
 }
 .customization-menu {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   grid-template-columns: 1fr;
   row-gap: 5px;
-  justify-items: center;
+  justify-content: center;
+  align-items: center;
   position: absolute;
   background-color: rgb(255, 255, 255);
   color: black;
   border-radius: 10px;
-  border: 1px solid black;
-  padding: 0.5em;
+  border: 1px solid white;
   opacity: 0;
   scale: 0;
-  width: 150px;
-  height: 120px;
-  left: -10em;
+  /* width: 150px;
+  height: 120px; */
+  width: 50%;
+  /* height: 200px; */
+  aspect-ratio: 1.2;
+  right: 25%;
   z-index: 100;
   transition: all ease-in-out 150ms 100ms;
 }
 .customization-menu input {
   border-radius: 0 0 8px 8px;
   width: 80%;
+  height: 2rem;
 }
 .customization-menu input::-webkit-input-placeholder {
   color: rgb(255, 255, 255, 0.5);
 }
-/* .customization-menu input:hover::-webkit-input-placeholder{
-  color: cyan;
-} */
 .customization-menu .color-picker-toggler {
   border-radius: 8px 8px 0 0;
   width: 80%;
+  height: 2rem;
 }
 .colors {
   display: flex;
@@ -512,6 +496,34 @@ option {
   position: absolute;
   background-color: red !important;
   border-radius: 50%;
+}
+
+@media (hover: hover) {
+  ::-webkit-scrollbar-track:hover {
+    background: white;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: grey;
+  }
+  button:not(:disabled):hover {
+    opacity: 1;
+    border: 1px solid black;
+  }
+  .save-presets:hover,
+  .load-presets:hover {
+    color: #212121;
+    translate: 0 -5px;
+    box-shadow: none;
+    border: 1px solid black;
+    border-radius: 8px;
+    background-color: white;
+  }
+  .close-drag-area:hover {
+    scale: 1.5;
+  }
+  .footer-icon:hover {
+    color: white !important;
+  }
 }
 
 @media screen and (max-width: 1150px) {
@@ -643,6 +655,10 @@ option {
     right: 10vw;
     height: 30px;
     color: white;
+  }
+
+  .tiers {
+    background-color: #292929;
   }
   .tier-container {
     max-height: fit-content;

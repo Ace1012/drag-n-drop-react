@@ -18,7 +18,6 @@ import {
   transferTile,
 } from "../store/useStore";
 import { useDispatch, useSelector } from "react-redux";
-import { DataType } from "csstype";
 
 export interface ICustomizationOptions {
   color: string;
@@ -34,6 +33,7 @@ interface TierProps {
   isPointerHandled: React.MutableRefObject<boolean>;
   getTiersSectionRect: () => DOMRect;
   getTilesSectionRect: () => DOMRect;
+  calculateTextColor(hex: string): "#000000" | "#FFFFFF";
   // triggerSnackbar: (message: string) => void;
   children: ITile[];
 }
@@ -43,6 +43,7 @@ const Tier = ({
   isPointerHandled,
   getTiersSectionRect,
   getTilesSectionRect,
+  calculateTextColor,
   // triggerSnackbar,
   children,
 }: TierProps) => {
@@ -68,6 +69,9 @@ const Tier = ({
       : "#212121"
   );
 
+  /**
+   * Drag event handlers
+   */
   function dragStart(e: React.DragEvent) {
     tierRef.current!.style.opacity = "0.5";
     e.dataTransfer.setData("tier", JSON.stringify(tier));
@@ -79,41 +83,11 @@ const Tier = ({
 
   function dragOver(e: React.DragEvent) {
     e.preventDefault();
-    const tierRect = tierRef.current!.getBoundingClientRect();
-    const tierMiddle = tierRect.top + tierRect.height / 2;
-    const delta = e.clientY - tierMiddle;
+    const delta = calculateTierDelta(e);
     const isDraggingTier = e.dataTransfer.types.includes("tier");
     if (!isDraggingThisTier && isDraggingTier) {
       // console.log(tierBackgroundColor);
-      if (delta <= 0) {
-        console.log("Before");
-        tierRef.current!.dataset.positon = "before";
-        tierRef.current!.style.boxShadow = `inset -10px 15px 10px ${
-          tierBackgroundColor === "#212121"
-            ? "cyan"
-            : `${tierBackgroundColor}55`
-        }`;
-        tierHeaderRef.current!.style.boxShadow = `inset 10px 15px 10px ${
-          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
-        }`;
-        tierFooterRef.current!.style.boxShadow = `inset 10px 15px 10px ${
-          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
-        }`;
-      } else {
-        console.log("After");
-        tierRef.current!.dataset.positon = "after";
-        tierRef.current!.style.boxShadow = `inset 10px -15px 10px ${
-          tierBackgroundColor === "#212121"
-            ? "cyan"
-            : `${tierBackgroundColor}55`
-        }`;
-        tierHeaderRef.current!.style.boxShadow = `inset 10px -15px 10px ${
-          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
-        }`;
-        tierFooterRef.current!.style.boxShadow = `inset 10px -15px 10px ${
-          tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
-        }`;
-      }
+      placementIndicator(delta);
     } else if (!isDraggingTier) {
       tierRef.current!.style.border = "1px solid yellow";
     }
@@ -168,6 +142,44 @@ const Tier = ({
     tierRef.current!.removeAttribute("data-position");
   }
 
+  /**
+   * Utility functions
+   */
+
+  function placementIndicator(delta: number) {
+    if (delta <= 0) {
+      tierRef.current!.dataset.positon = "before";
+      tierRef.current!.style.boxShadow = `inset -10px 15px 10px ${
+        tierBackgroundColor === "#212121" ? "cyan" : `${tierBackgroundColor}55`
+      }`;
+      tierHeaderRef.current!.style.boxShadow = `inset 10px 15px 10px ${
+        tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+      }`;
+      tierRef.current!.style.backgroundColor = "transparent";
+      tierFooterRef.current!.style.boxShadow = `inset -10px 15px 10px ${
+        tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+      }`;
+    } else {
+      tierRef.current!.dataset.positon = "after";
+      tierRef.current!.style.boxShadow = `inset 10px -15px 10px ${
+        tierBackgroundColor === "#212121" ? "cyan" : `${tierBackgroundColor}55`
+      }`;
+      tierHeaderRef.current!.style.boxShadow = `inset 10px -15px 10px ${
+        tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+      }`;
+      tierRef.current!.style.backgroundColor = "transparent";
+      tierFooterRef.current!.style.boxShadow = `inset -10px -15px 10px ${
+        tierBackgroundColor === "#212121" ? "cyan" : tierBackgroundColor
+      }`;
+    }
+  }
+
+  function calculateTierDelta(e: React.DragEvent | React.PointerEvent) {
+    const tierRect = tierRef.current!.getBoundingClientRect();
+    const tierMiddle = tierRect.top + tierRect.height / 2;
+    return e.clientY - tierMiddle;
+  }
+
   function tileDrop(
     e: React.DragEvent,
     dragTile: ITile,
@@ -193,12 +205,20 @@ const Tier = ({
     dispatch(removeTier(tier));
   }
 
+  function handleTouchDrop(e: React.PointerEvent<HTMLElement>) {
+    if (dragTier) {
+      const delta = calculateTierDelta(e);
+
+      dispatch(
+        positionTier({ delta, destinationTier: tier, originTier: dragTier })
+      );
+    }
+  }
+
   function reOrganizeTiers(e: React.DragEvent) {
     const dragTier = JSON.parse(e.dataTransfer.getData("tier")) as ITier;
     if (!dragTier) return;
-    const tierRect = tierRef.current!.getBoundingClientRect();
-    const tierMiddle = tierRect.top + tierRect.height / 2;
-    const delta = e.clientY - tierMiddle;
+    const delta = calculateTierDelta(e);
     const closestTier = tier;
     let index: number;
     // triggerSnackbar(
@@ -263,7 +283,7 @@ const Tier = ({
     dragTierShadow.style.pointerEvents = "none";
     dragTierShadow.style.width = `${rect.width}px`;
     dragTierShadow.style.height = `${rect.height}px`;
-    dragTierShadow.style.opacity = "0.5";
+    dragTierShadow.style.opacity = "0.3";
     document.body.append(dragTierShadow);
   }
 
@@ -272,7 +292,7 @@ const Tier = ({
     e.currentTarget.releasePointerCapture(e.pointerId);
   }
 
-  function handleMobilePointerDown(e: React.PointerEvent<HTMLElement>) {
+  function handleContentPointerDown(e: React.PointerEvent<HTMLElement>) {
     if (e.pointerType !== "mouse") {
       releasePointer(e);
       createTierShadow(e);
@@ -281,7 +301,7 @@ const Tier = ({
     }
   }
 
-  function handleMobilePointerUp(e: React.PointerEvent<HTMLElement>) {
+  function handleContentPointerUp(e: React.PointerEvent<HTMLElement>) {
     if (e.pointerType !== "mouse") {
       setIsDraggingThisTier(false);
       tierRef.current!.style.border = "";
@@ -289,6 +309,7 @@ const Tier = ({
       tierHeaderRef.current!.style.backgroundColor = "";
       tierFooterRef.current!.style.backgroundColor = "";
       tierHeaderRef.current!.style.border = "";
+      tierRef.current!.style.backgroundColor = "";
       tierHeaderRef.current!.style.boxShadow =
         tierBackgroundColor === "#212121"
           ? ""
@@ -296,7 +317,7 @@ const Tier = ({
     }
   }
 
-  function handleMobileOnDropTile(e: React.PointerEvent<HTMLUListElement>) {
+  function handleContentOnDropTile(e: React.PointerEvent<HTMLUListElement>) {
     if (e.pointerType !== "mouse") {
       if (dragTile) {
         if (dragTile.parentTier) {
@@ -387,50 +408,32 @@ const Tier = ({
     closeMenu();
   }
 
-  function colorToRGB(color: DataType.Color) {
-    const canvas = document.createElement("canvas");
-    const canvasContext = canvas.getContext("2d");
-    canvasContext!.fillStyle = color;
-    const fillStyle = canvasContext!.fillStyle;
-    canvas.remove();
-    // console.log(fillStyle);
-    return fillStyle;
+  /**
+   * Pointer event handlers
+   */
+
+  function handlePointerUp(e: React.PointerEvent<HTMLLIElement>) {
+    if (e.pointerType !== "mouse") {
+      if (dragTier && dragTier.title !== tier.title) {
+        handleTouchDrop(e);
+        // dispatch(setDragTile(null));
+        // e.currentTarget.style.opacity = "";
+        delete tierRef.current!.dataset.positon;
+      }
+    }
   }
 
-  /**
-   * Convert rgb value(rgb(154, 205, 50)) to hex #9acd32
-   *
-   * @param rgb
-   * @returns
-   */
-  function computeHex(rgb: string) {
-    let arr = rgb.substring(4, rgb.length - 1).split(", ");
-    const hex = arr.reduce((hex, num) => {
-      return hex.concat(parseInt(num).toString(16));
-    }, "#");
-    console.log(`HEX: ${hex}`);
-    return hex;
+  function handlePointerMove(e: React.PointerEvent<HTMLLIElement>) {
+    if (e.pointerType !== "mouse") {
+      if (dragTier && dragTier.title !== tier.title) {
+        const delta = calculateTierDelta(e);
+        placementIndicator(delta);
+      }
+    }
   }
 
-  /**
-   * Code inspired by:
-   *    - https://stackoverflow.com/a/35970186/6017598
-   *    - https://stackoverflow.com/a/3943023/6017598
-   *
-   * @param hex
-   * @returns
-   */
-  function calculateTextColor(hex: string) {
-    hex = hex.substring(1);
-    const [red, green, blue] = [
-      parseInt(hex.slice(0, 2), 16),
-      parseInt(hex.slice(2, 4), 16),
-      parseInt(hex.slice(4, 6), 16),
-    ];
-    return red * 0.299 + green * 0.587 + blue * 0.114 > 120
-      ? "#000000"
-      : "#FFFFFF";
-    // return red * 0.5 + green * 0.5 + blue * 0.5 >= 127.5 ? "#000000" : "#FFFFFF";
+  function getTierTop() {
+    return tierRef.current?.getBoundingClientRect().top;
   }
 
   useEffect(() => {
@@ -468,6 +471,8 @@ const Tier = ({
       onDragEnd={dragEnd}
       onDragOver={(e) => dragOver(e)}
       onDragLeave={(e) => dragLeave(e)}
+      onPointerUp={handlePointerUp}
+      onPointerMove={handlePointerMove}
       style={{
         backgroundColor: `${tierBackgroundColor}`,
         // boxShadow: `8px 8px 10px ${tierBackgroundColor}`
@@ -484,8 +489,8 @@ const Tier = ({
         }}
         onMouseEnter={(e) => handleDraggable(e)}
         onMouseLeave={(e) => handleDraggable(e)}
-        onPointerDown={(e) => handleMobilePointerDown(e)}
-        onPointerUp={(e) => handleMobilePointerUp(e)}
+        onPointerDown={(e) => handleContentPointerDown(e)}
+        onPointerUp={(e) => handleContentPointerUp(e)}
         onDragLeave={(e) => e.stopPropagation()}
       >
         <span>{tier.title}</span>
@@ -493,7 +498,7 @@ const Tier = ({
       <ul
         ref={contentAreaRef}
         onDragLeave={(e) => e.stopPropagation()}
-        onPointerUp={handleMobileOnDropTile}
+        onPointerUp={handleContentOnDropTile}
         style={{
           color: calculateTextColor(tierBackgroundColor),
         }}
@@ -554,8 +559,10 @@ const Tier = ({
           size={30}
           color="rgb(130, 130, 130)"
         />
-        {/* <div className="customization-overlay"> */}
         <CustomizationMenu
+          parentTierTop={getTierTop() ?? 0}
+          calculateTextColor={calculateTextColor}
+          isOpen={isCustomizationMenuOpen}
           tierBackgroundColor={tierBackgroundColor}
           openColorPicker={openColorPicker}
           setOpenColorPicker={setOpenColorPicker}
@@ -564,7 +571,6 @@ const Tier = ({
           handleSubmit={handleSubmit}
           ref={customMenuRef}
         />
-        {/* </div> */}
         <FaTrash
           className="footer-icon"
           onClick={dispatchRemoveTier}

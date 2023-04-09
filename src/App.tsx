@@ -15,6 +15,7 @@ import {
   setDragTier,
   setDragTile,
 } from "./store/useStore";
+import { DataType } from "csstype";
 
 export interface ColorPreset {
   [key: string]: { backgroundColor: string };
@@ -208,17 +209,65 @@ function App() {
     return tilesSectionForwardRef.current!.returnMobileTilesRect();
   }
 
+  function colorToRGB(color: DataType.Color) {
+    const canvas = document.createElement("canvas");
+    const canvasContext = canvas.getContext("2d");
+    canvasContext!.fillStyle = color;
+    const fillStyle = canvasContext!.fillStyle;
+    canvas.remove();
+    // console.log(fillStyle);
+    return fillStyle;
+  }
+
+  /**
+   * Convert rgb value(rgb(154, 205, 50)) to hex #9acd32
+   *
+   * @param rgb
+   * @returns
+   */
+  function computeHex(rgb: string) {
+    let arr = rgb.substring(4, rgb.length - 1).split(", ");
+    const hex = arr.reduce((hex, num) => {
+      return hex.concat(parseInt(num).toString(16));
+    }, "#");
+    console.log(`HEX: ${hex}`);
+    return hex;
+  }
+
+  /**
+   * Code inspired by:
+   *    - https://stackoverflow.com/a/35970186/6017598
+   *    - https://stackoverflow.com/a/3943023/6017598
+   *
+   * @param hex
+   * @returns
+   */
+  function calculateTextColor(hex: string) {
+    hex = hex.substring(1);
+    const [red, green, blue] = [
+      parseInt(hex.slice(0, 2), 16),
+      parseInt(hex.slice(2, 4), 16),
+      parseInt(hex.slice(4, 6), 16),
+    ];
+    return red * 0.299 + green * 0.587 + blue * 0.114 > 120
+      ? "#000000"
+      : "#FFFFFF";
+    // return red * 0.5 + green * 0.5 + blue * 0.5 >= 127.5 ? "#000000" : "#FFFFFF";
+  }
+
   /**
    * Checks whether on mobile to display warning
    */
-  // useEffect(() => {
-  //   const mobileRegex = /iphone|android|ipad/i;
-  //   if (mobileRegex.test(navigator.userAgent)) {
-  //     setIsMobile(true);
-  //     setRevealMobileNav(true);
-  //     console.log("Mobile detected");
-  //   }
-  // }, []);
+  useEffect(() => {
+    const mobileRegex = /iphone|android|ipad/i;
+    if (mobileRegex.test(navigator.userAgent)) {
+      const alreadyWarned = Boolean(sessionStorage.getItem("mobile-warning"));
+      console.log(alreadyWarned);
+      !alreadyWarned && setIsMobile(true);
+      setRevealMobileNav(true);
+      console.log("Mobile detected");
+    }
+  }, []);
 
   return (
     <div
@@ -244,6 +293,7 @@ function App() {
       <PresetsManagement />
       <TierSection
         ref={tiersSectionForwardRef}
+        calculateTextColor={calculateTextColor}
         isPointerHandled={isPointerHandled}
         getTilesSectionRect={getTilesSectionRect}
       />
