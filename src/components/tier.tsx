@@ -284,6 +284,7 @@ const Tier = ({
     dragTierShadow.style.width = `${rect.width}px`;
     dragTierShadow.style.height = `${rect.height}px`;
     dragTierShadow.style.opacity = "0.3";
+    dragTierShadow.style.zIndex = "10";
     document.body.append(dragTierShadow);
   }
 
@@ -334,7 +335,7 @@ const Tier = ({
               })
             );
           }
-        } else if(!isTileDropHandled.current) {
+        } else if (!isTileDropHandled.current) {
           console.log("Tier: Adding tile");
           dispatch(
             addTileToTier({ destinationTierTitle: tier.title, dragTile })

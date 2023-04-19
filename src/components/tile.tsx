@@ -147,6 +147,7 @@ const Tile = ({
       ? (dragShadow.style.backgroundImage = tile.imageUrl)
       : (dragShadow.style.backgroundColor = "lightgrey");
     dragShadow.style.opacity = "0.5";
+    dragShadow.style.zIndex = "10";
     document.body.append(dragShadow);
   }
 

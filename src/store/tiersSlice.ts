@@ -77,9 +77,7 @@ export const tiersSlice = createSlice({
       state.tiers = [...state.tiers, action.payload];
     },
     removeTier: (state, action: PayloadAction<ITier>) => {
-      state.tiers = [
-        ...state.tiers.filter(({ title }) => title !== action.payload.title),
-      ];
+      state.tiers = state.tiers.filter(({ title }) => title !== action.payload.title);
     },
     deleteAllTiers: (state, action: PayloadAction<ITier[]>) => {
       state.tiers = [];

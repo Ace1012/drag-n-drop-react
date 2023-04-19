@@ -1,26 +1,29 @@
 import {
-  ChangeEvent,
   KeyboardEvent,
   useRef,
-  useState,
   useImperativeHandle,
   forwardRef,
+  useState,
   useEffect,
 } from "react";
-import { ITier, ITierSectionForwardRefProps, ITile } from "../App";
+import { ITierSectionForwardRefProps } from "../App";
 import { v4 as uuid } from "uuid";
 import Tier from "./tier";
 import { useDispatch, useSelector } from "react-redux/es/exports";
 import { addTier, deleteAllTiers, selectTiers } from "../store/useStore";
 
 interface ITierSectionProps {
+  isFullscreen: boolean;
   isPointerHandled: React.MutableRefObject<boolean>;
   getTilesSectionRect: () => DOMRect;
   calculateTextColor(hex: string): "#000000" | "#FFFFFF";
 }
 
 const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
-  ({ isPointerHandled, getTilesSectionRect, calculateTextColor }, ref) => {
+  (
+    { isFullscreen, isPointerHandled, getTilesSectionRect, calculateTextColor },
+    ref
+  ) => {
     const inputTierRef = useRef<HTMLInputElement>(null);
     const tiersSectionRef = useRef<HTMLDivElement>(null);
     const tiersRef = useRef<HTMLUListElement>(null);
@@ -66,8 +69,15 @@ const TierSection = forwardRef<ITierSectionForwardRefProps, ITierSectionProps>(
       },
     }));
 
+    useEffect(() => {
+      window.onresize = () => {};
+    }, []);
+
     return (
-      <div className="tier-section" ref={tiersSectionRef}>
+      <div
+        className={`tier-section ${isFullscreen ? "fullscreen" : ""}`}
+        ref={tiersSectionRef}
+      >
         <header>
           <label>
             <input

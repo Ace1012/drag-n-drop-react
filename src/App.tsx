@@ -16,6 +16,7 @@ import {
   setDragTile,
 } from "./store/useStore";
 import { DataType } from "csstype";
+import ToggleFullscreenButton from "./components/toggleFullscreenButton";
 
 export interface ColorPreset {
   [key: string]: { backgroundColor: string };
@@ -58,6 +59,7 @@ function App() {
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [revealMobileNav, setRevealMobileNav] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // function triggerSnackbar(message: string) {
   //   snackbarMessage.current = message;
@@ -259,10 +261,9 @@ function App() {
    * Checks whether on mobile to display warning
    */
   useEffect(() => {
-    const mobileRegex = /iphone|android|ipad/i;
+    const mobileRegex = /iphone|android|ipad/gi;
     if (mobileRegex.test(navigator.userAgent)) {
-      const alreadyWarned = Boolean(sessionStorage.getItem("mobile-warning"));
-      !alreadyWarned && setIsMobile(true);
+      setIsMobile(true);
       setRevealMobileNav(true);
       console.log("Mobile detected");
     }
@@ -288,10 +289,16 @@ function App() {
           setIsSnackbarOpen={setIsSnackbarOpen}
         />
       )} */}
-      {isMobile && <MobileWarning setIsMobile={setIsMobile} />}
       <PresetsManagement />
+      {isMobile && (
+        <ToggleFullscreenButton
+          isFullscreen={isFullscreen}
+          setIsFullscreen={setIsFullscreen}
+        />
+      )}
       <TierSection
         ref={tiersSectionForwardRef}
+        isFullscreen={isFullscreen}
         calculateTextColor={calculateTextColor}
         isPointerHandled={isPointerHandled}
         getTilesSectionRect={getTilesSectionRect}
