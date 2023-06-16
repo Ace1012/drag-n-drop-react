@@ -77,7 +77,9 @@ export const tiersSlice = createSlice({
       state.tiers = [...state.tiers, action.payload];
     },
     removeTier: (state, action: PayloadAction<ITier>) => {
-      state.tiers = state.tiers.filter(({ title }) => title !== action.payload.title);
+      state.tiers = state.tiers.filter(
+        ({ title }) => title !== action.payload.title
+      );
     },
     deleteAllTiers: (state, action: PayloadAction<ITier[]>) => {
       state.tiers = [];
@@ -240,23 +242,49 @@ export const tiersSlice = createSlice({
       ) => {
         if (originParentTier && destinationParentTier) {
           if (originParentTier.title === destinationParentTier.title) {
-            const tier = state.tiers.find(
+            tiersSlice.caseReducers.positionTileInTier(state, {
+              payload: {
+                originTier: originParentTier,
+                destinationTier: destinationParentTier,
+                originTile,
+                destinationTile,
+                delta,
+              },
+              type,
+            });
+          } else {
+            const originTier = state.tiers.find(
               ({ title }) => title === originParentTier?.title
             );
+            const destinationTier = state.tiers.find(
+              ({ title }) => title === destinationParentTier?.title
+            );
 
-            if (tier) {
-              const index = tier.children.findIndex(({ id }) => originTile.id);
-              tier.children = tier.children.filter(
-                ({ id }) => id !== originTile.id
-              );
-              if (delta <= 0) {
-                tier.children.splice(index, 0, originTile);
-              } else {
-                tier.children.splice(index + 1, 0, originTile);
+            if (originTier && destinationTier) {
+              if (originParentTier) {
+                tiersSlice.caseReducers.removeTierChild(state, {
+                  payload: {
+                    parentTierTitle: originParentTier.title,
+                    childTile: originTile,
+                  },
+                  type,
+                });
+              }
+              if (destinationParentTier) {
+                tiersSlice.caseReducers.addTileToTier(state, {
+                  type,
+                  payload: {
+                    dragTile: originTile,
+                    destinationTile: destinationTile,
+                    destinationTierTitle: destinationParentTier.title,
+                    delta: delta ? delta : undefined,
+                  },
+                });
               }
             }
           }
         } else {
+          console.log("Case 2");
           if (originParentTier) {
             tiersSlice.caseReducers.removeTierChild(state, {
               payload: {
